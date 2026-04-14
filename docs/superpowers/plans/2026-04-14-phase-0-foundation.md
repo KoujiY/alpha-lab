@@ -1599,6 +1599,29 @@ git commit -m "chore: add data folder structure placeholder"
 
 ---
 
+## Task F1.5: 知識庫概念（佔位，細節待使用者補充）
+
+**Files:**
+- TBD（待使用者提供細節）
+
+**狀態**：**PLACEHOLDER** — 此 Task 暫時保留位置，使用者會於後續提供完整需求（例如知識庫要放哪些內容、目錄結構、格式、是否與 `data/reports/` 互通等）。
+
+**目前已知：**
+- 位置介於 F1（`data/` 佔位）與 F2（Phase 0 驗收）之間
+- 概念類似 larp-nexus 的 `docs/knowledge/` 原子化知識庫
+- 可能用於存放投資領域知識、指標解釋、因子定義、使用者決策紀錄等長期累積的學習內容
+
+**待釐清（使用者後續補充）：**
+- 知識庫目錄位置（`docs/knowledge/`？還是 `data/knowledge/`？）
+- 分類維度（依主題？依因子？依報告類型？）
+- 與 `data/reports/` 的關係
+- Markdown frontmatter 格式
+- Claude Code 檢索流程
+
+**暫時動作**：此 Task 在 Phase 0 中**跳過實作**，僅保留位置。待使用者提供細節後再補寫 Step。
+
+---
+
 ## Task F2: Phase 0 完成驗收
 
 - [ ] **Step 1: 執行全套靜態檢查與測試**
