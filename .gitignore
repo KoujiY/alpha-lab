@@ -39,12 +39,13 @@ data/*.db
 data/*.db-journal
 data/raw/
 data/processed/
-data/reports/
+data/reports/*
 data/logs/
 data/cache/
 # 保留資料夾結構
 !data/.gitkeep
 !data/reports/.gitkeep
+!data/reports/README.md
 
 # Env
 .env
