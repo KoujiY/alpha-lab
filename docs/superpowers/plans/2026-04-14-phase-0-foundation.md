@@ -158,7 +158,7 @@ git commit -m "chore: add .gitignore and README"
 ## Task A2: CLAUDE.md（專案協作規範）
 
 **Files:**
-- Create: `g:/codingdata/alpha-lab/CLAUDE.md`
+- Create: `g:/codingdata/alpha-lab/.claude/CLAUDE.md`
 
 - [ ] **Step 1: 寫 CLAUDE.md**
 
@@ -287,7 +287,8 @@ summary_line: "Q1 財報亮眼，建議加碼"
 
 ```
 alpha-lab/
-├── CLAUDE.md
+├── .claude/
+│   └── CLAUDE.md    # 本協作指南
 ├── README.md
 ├── frontend/
 ├── backend/
@@ -305,7 +306,7 @@ alpha-lab/
 **Commit（待使用者驗證後執行）：**
 
 ```bash
-git add CLAUDE.md
+git add .claude/CLAUDE.md
 git commit -m "docs: add project CLAUDE.md with collaboration rules"
 ```
 

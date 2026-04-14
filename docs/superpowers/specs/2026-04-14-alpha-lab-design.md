@@ -469,7 +469,27 @@ GET /api/glossary/K線
 | 6 | 功能 D | 組合追蹤、績效計算 |
 | 7（預留） | Claude API 整合 | `backend/ai/` 實作 |
 
-每個 Phase 的驗收標準：
+### 分階段規劃原則（MANDATORY）
+
+**實作計畫採「Just-in-Time」撰寫：**
+
+- **僅當前 Phase 有詳細實作計畫**（`docs/superpowers/plans/<date>-phase-N-<name>.md`）
+- **下一個 Phase 的實作計畫，僅在當前 Phase 驗收完成後才撰寫**
+- 理由：
+  1. 越後面的 Phase 不確定性越高，提前規劃會因前一階段學到的知識而需大改
+  2. 避免一次輸出過多內容，保持計畫精準度
+  3. 使用者可能換 session，需要明確的「接續點」
+
+**Phase 轉換流程：**
+1. 當前 Phase 所有 Task 完成
+2. 使用者手動驗收通過並明確確認「Phase N 驗證通過」
+3. Commit Phase 最終狀態（可選打 tag）
+4. 等使用者明確指示「開始 Phase N+1」
+5. 呼叫 `writing-plans` skill 撰寫下一 Phase 的實作計畫
+6. 使用者審視計畫並確認後，進入實作
+
+### 每個 Phase 的驗收標準
+
 - 功能可用、流程完整
 - `tsc --noEmit` 與 Python 型別檢查通過
 - 核心邏輯單元測試
