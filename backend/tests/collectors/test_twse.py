@@ -5,9 +5,13 @@ from datetime import date
 import httpx
 import pytest
 import respx
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
+from alpha_lab.collectors.runner import upsert_daily_prices
 from alpha_lab.collectors.twse import fetch_daily_prices
 from alpha_lab.schemas.price import DailyPrice
+from alpha_lab.storage.models import Base, PriceDaily, Stock
 
 SAMPLE_RESPONSE = {
     "stat": "OK",
@@ -55,3 +59,61 @@ async def test_fetch_daily_prices_raises_on_http_error() -> None:
 
         with pytest.raises(httpx.HTTPStatusError):
             await fetch_daily_prices(symbol="2330", year_month=date(2026, 4, 1))
+
+
+def test_upsert_daily_prices_inserts_new_rows() -> None:
+    engine = create_engine("sqlite:///:memory:", future=True)
+    Base.metadata.create_all(engine)
+    session_local = sessionmaker(bind=engine, future=True)
+
+    with session_local() as session:
+        session.add(Stock(symbol="2330", name="台積電"))
+        session.commit()
+
+        rows = [
+            DailyPrice(
+                symbol="2330",
+                trade_date=date(2026, 4, 1),
+                open=500.0, high=510.0, low=499.0, close=505.0, volume=1000,
+            ),
+            DailyPrice(
+                symbol="2330",
+                trade_date=date(2026, 4, 2),
+                open=505.0, high=512.0, low=504.0, close=510.0, volume=2000,
+            ),
+        ]
+        inserted = upsert_daily_prices(session, rows)
+        session.commit()
+
+        assert inserted == 2
+        assert session.query(PriceDaily).count() == 2
+
+
+def test_upsert_daily_prices_updates_existing_row() -> None:
+    engine = create_engine("sqlite:///:memory:", future=True)
+    Base.metadata.create_all(engine)
+    session_local = sessionmaker(bind=engine, future=True)
+
+    with session_local() as session:
+        session.add(Stock(symbol="2330", name="台積電"))
+        session.add(
+            PriceDaily(
+                symbol="2330", trade_date=date(2026, 4, 1),
+                open=100.0, high=100.0, low=100.0, close=100.0, volume=1,
+            )
+        )
+        session.commit()
+
+        updated = upsert_daily_prices(
+            session,
+            [DailyPrice(
+                symbol="2330", trade_date=date(2026, 4, 1),
+                open=500.0, high=510.0, low=499.0, close=505.0, volume=1000,
+            )],
+        )
+        session.commit()
+
+        assert updated == 1
+        row = session.get(PriceDaily, {"symbol": "2330", "trade_date": date(2026, 4, 1)})
+        assert row is not None
+        assert row.close == 505.0
