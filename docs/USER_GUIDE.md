@@ -28,9 +28,15 @@ pnpm install
 ```bash
 # Terminal 1 — Backend
 cd backend
+# 啟動 venv（cmd）：  .venv\Scripts\activate
+# 啟動 venv（PS）： .venv\Scripts\Activate.ps1
+# 啟動 venv（bash）：source .venv/Scripts/activate
 uvicorn alpha_lab.api.main:app --reload
+# 或不啟動 venv，直接用：
+#   .venv/Scripts/python.exe -m uvicorn alpha_lab.api.main:app --reload
 # API 在 http://localhost:8000
 # Swagger 文件在 http://localhost:8000/docs
+# 退出 venv：deactivate
 
 # Terminal 2 — Frontend
 cd frontend
