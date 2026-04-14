@@ -4,15 +4,24 @@ Phase 1: 日股價（STOCK_DAY）
 Phase 1.5 將新增：三大法人、融資融券
 """
 
+import ssl
 from datetime import date
 
 import httpx
+import truststore
 
 from alpha_lab.config import get_settings
 from alpha_lab.schemas.price import DailyPrice
 
 TWSE_BASE_URL = "https://www.twse.com.tw"
 STOCK_DAY_PATH = "/rwd/zh/afterTrading/STOCK_DAY"
+
+
+def _build_ssl_context() -> ssl.SSLContext:
+    """改用系統 CA store（Windows/macOS），避免 Python 3.14 + OpenSSL 3
+    對缺少 Subject Key Identifier 的憑證（例：TWSE）嚴格拒絕。
+    """
+    return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
 
 
 def _roc_date_to_iso(roc: str) -> date:
@@ -49,6 +58,7 @@ async def fetch_daily_prices(symbol: str, year_month: date) -> list[DailyPrice]:
         base_url=TWSE_BASE_URL,
         timeout=settings.http_timeout_seconds,
         headers=headers,
+        verify=_build_ssl_context(),
     ) as client:
         resp = await client.get(STOCK_DAY_PATH, params=params)
         resp.raise_for_status()
