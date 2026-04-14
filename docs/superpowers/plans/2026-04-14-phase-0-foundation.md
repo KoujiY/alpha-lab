@@ -1599,26 +1599,50 @@ git commit -m "chore: add data folder structure placeholder"
 
 ---
 
-## Task F1.5: 知識庫概念（佔位，細節待使用者補充）
+## Task F1.5: 開發者知識庫骨架
+
+**定位**：`docs/knowledge/` 服務於**修改 alpha-lab 的 Claude**（開發者立場），比照 larp-nexus 模式。Phase 0 只建骨架與維護規範，實際條目隨 Phase 逐步補。
 
 **Files:**
-- TBD（待使用者提供細節）
+- Create: `docs/knowledge/index.md`
+- Create: `docs/knowledge/features/README.md`
+- Create: `docs/knowledge/features/{data-panel,screener,portfolio,tracking,education}/.gitkeep`
+- Create: `docs/knowledge/domain/README.md`
+- Create: `docs/knowledge/architecture/README.md`
+- Create: `docs/knowledge/collectors/README.md`
+- Create: `docs/knowledge/ai-integration/README.md`
+- Modify: `.claude/CLAUDE.md`（加「知識庫 MANDATORY」段落、同步檢查加「知識庫」項、資料夾結構加 `knowledge/`）
+- Modify: `docs/superpowers/specs/2026-04-14-alpha-lab-design.md`（第 15 節加「開發者知識庫」小節）
 
-**狀態**：**PLACEHOLDER** — 此 Task 暫時保留位置，使用者會於後續提供完整需求（例如知識庫要放哪些內容、目錄結構、格式、是否與 `data/reports/` 互通等）。
+- [ ] **Step 1: 建立骨架**：index.md + 5 個資料夾 README + features 下 5 個子資料夾的 `.gitkeep`
 
-**目前已知：**
-- 位置介於 F1（`data/` 佔位）與 F2（Phase 0 驗收）之間
-- 概念類似 larp-nexus 的 `docs/knowledge/` 原子化知識庫
-- 可能用於存放投資領域知識、指標解釋、因子定義、使用者決策紀錄等長期累積的學習內容
+- [ ] **Step 2: `.claude/CLAUDE.md` 加維護規範**
 
-**待釐清（使用者後續補充）：**
-- 知識庫目錄位置（`docs/knowledge/`？還是 `data/knowledge/`？）
-- 分類維度（依主題？依因子？依報告類型？）
-- 與 `data/reports/` 的關係
-- Markdown frontmatter 格式
-- Claude Code 檢索流程
+加入「知識庫（MANDATORY）」段落，內容包含：
+- 定位（給開發者 Claude 讀）
+- 何時讀（修改既有功能前）
+- 何時寫/更新（新增/修改/重構/刪除功能時）
+- 檔案格式（frontmatter 範本）
+- 同步檢查清單新增「知識庫」一項
+- 資料夾結構加 `docs/knowledge/`
 
-**暫時動作**：此 Task 在 Phase 0 中**跳過實作**，僅保留位置。待使用者提供細節後再補寫 Step。
+- [ ] **Step 3: 設計 spec 第 15 節加「開發者知識庫」小節**
+
+說明定位、結構、原則。同步檢查清單加「`docs/knowledge/` 對應條目更新」。
+
+- [ ] **Step 4: STOP — 請使用者確認**
+
+提示使用者：
+1. 瀏覽 `docs/knowledge/index.md` 確認總覽
+2. 瀏覽各 `README.md` 確認分類範圍
+3. 確認 `.claude/CLAUDE.md` 與 spec 的新增內容
+
+**Commit（待使用者驗證後執行）：**
+
+```bash
+git add docs/knowledge/ .claude/CLAUDE.md docs/superpowers/specs/2026-04-14-alpha-lab-design.md docs/superpowers/plans/2026-04-14-phase-0-foundation.md
+git commit -m "docs: add knowledge base skeleton and maintenance rules"
+```
 
 ---
 

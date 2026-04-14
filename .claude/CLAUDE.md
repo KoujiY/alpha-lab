@@ -70,10 +70,50 @@ cd frontend && pnpm e2e
 3. **按 type 拆分**：`feat` / `docs` / `fix` / `refactor` / `chore` 不混在同一 commit
 4. **禁止 scope 括號**：commit subject 必須是 `type: description`，不可寫 `type(scope): description`
 5. **同步檢查**：
+   - **知識庫**：`docs/knowledge/` 下的對應條目是否需要更新（新增/修改/刪除功能時必做）
    - 設計 spec 是否需要更新
    - `USER_GUIDE.md` 是否需要補充
    - 相關 E2E 是否需要新增/更新
 6. **中文亂碼掃描**：`grep -r "��" .` 確認無編碼錯誤
+
+## 知識庫（MANDATORY）
+
+知識庫位於 `docs/knowledge/`，服務於**修改 alpha-lab 的 Claude**（不是幫使用者做投資分析的 Claude）。詳細結構與原則見 [`docs/knowledge/index.md`](../docs/knowledge/index.md)。
+
+### 何時讀
+
+**修改既有功能前必讀對應條目**：依功能定位找到對應資料夾（`features/` / `domain/` / `architecture/` / `collectors/` / `ai-integration/`），讀完該條目再動手。若條目尚未撰寫（該功能 Phase 未到），至少讀該資料夾 `README.md` 了解範圍。
+
+### 何時寫 / 更新
+
+**每次開發完、commit 前必評估**：
+
+1. **新增功能** → 在對應 domain 建立或更新 md
+2. **修改現有邏輯**（資料結構、流程、規則、關鍵檔案路徑） → 更新對應 md
+3. **重構後介面改變** → 更新「關鍵檔案」清單
+4. **刪除功能** → 移除或標記過時條目
+
+違反此規範會讓知識庫與 codebase 脫節，失去存在意義。
+
+### 檔案格式
+
+每個知識庫 md 使用固定 frontmatter：
+
+```markdown
+---
+domain: features/portfolio
+updated: 2026-04-14
+related: [factors.md, scoring.md]
+---
+
+# 概念名稱
+
+## 目的
+## 現行實作
+## 關鍵檔案
+- [src/alpha_lab/...](...)
+## 修改時注意事項
+```
 
 ## Claude Code 分析 SOP
 
@@ -131,6 +171,7 @@ alpha-lab/
 ├── data/            # 本地持久層（不 commit）
 └── docs/
     ├── USER_GUIDE.md
+    ├── knowledge/   # 開發者知識庫（服務於修改 alpha-lab 的 Claude）
     └── superpowers/
         ├── specs/
         └── plans/

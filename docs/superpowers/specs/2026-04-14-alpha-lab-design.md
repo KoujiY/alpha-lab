@@ -495,7 +495,28 @@ GET /api/glossary/K線
 - 核心邏輯單元測試
 - 對應 E2E 新增
 - `USER_GUIDE.md` 同步更新
+- **`docs/knowledge/` 對應條目同步更新**（見下節）
 - 使用者手動驗證
+
+### 開發者知識庫
+
+位於 `docs/knowledge/`，服務於**修改 alpha-lab 的 Claude**（開發者立場，非投資分析立場）。比照 larp-nexus `docs/knowledge/` 模式原子化拆分：
+
+```
+docs/knowledge/
+├── index.md              # 總覽 + 維護規範
+├── features/             # A~E 五大功能模組
+├── domain/               # 投資領域內部邏輯（factors、scoring、reports）
+├── architecture/         # 系統架構（data models、API、資料流）
+├── collectors/           # 數據抓取模組
+└── ai-integration/       # Claude Code SOP、Claude API 預留
+```
+
+**原則**：
+- **讀者**：開發者 Claude，不是使用者
+- **原子化**：每 md 單一概念，50~200 行
+- **隨 Phase 補**：Phase 0 只建骨架，實際內容於各 Phase 撰寫
+- **強制同步**：修改功能前讀對應條目、commit 前評估是否需更新
 
 ## 16. 未解決議題
 
