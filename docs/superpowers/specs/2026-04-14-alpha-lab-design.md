@@ -458,16 +458,21 @@ GET /api/glossary/K線
 
 ## 15. 開發階段
 
-| Phase | 目標 | 交付物 |
-|-------|------|--------|
-| 0 | 基礎建設 | Repo 結構、FastAPI/React hello world、SQLite schema、CLAUDE.md、USER_GUIDE.md v0、CI |
-| 1 | 數據抓取 | TWSE/MOPS collectors、SQLite 寫入、`POST /api/jobs/collect` |
-| 2 | 功能 A | 個股頁、術語 Tooltip 基礎、術語庫 v1 |
-| 3 | 功能 C | 多因子評分引擎、組合推薦頁面 |
-| 4 | 功能 E | 推薦理由、L2 詳解面板、報告儲存、回顧模式 |
-| 5 | 功能 B | 選股篩選器 |
-| 6 | 功能 D | 組合追蹤、績效計算 |
-| 7（預留） | Claude API 整合 | `backend/ai/` 實作 |
+| Phase | 狀態 | 目標 | 交付物 |
+|-------|------|------|--------|
+| 0 | ✅ 完成（2026-04-15） | 基礎建設 | Repo 結構、FastAPI/React hello world、健康檢查串接、CLAUDE.md、USER_GUIDE.md v0、知識庫骨架 |
+| 1 | 進行中 | 數據抓取（最小管線） | SQLAlchemy + SQLite 基礎建設、TWSE 日股價 collector、MOPS 月營收 collector、`POST /api/jobs/collect`、`GET /api/jobs/status/{id}` |
+| 1.5 | 未開始 | 數據抓取擴充 | 三大法人、融資融券、季報（合併損益/資產負債/現金流）、重大訊息 collectors |
+| 2 | 未開始 | 功能 A | 個股頁、術語 Tooltip 基礎、術語庫 v1 |
+| 3 | 未開始 | 功能 C | 多因子評分引擎、組合推薦頁面 |
+| 4 | 未開始 | 功能 E | 推薦理由、L2 詳解面板、報告儲存、回顧模式 |
+| 5 | 未開始 | 功能 B | 選股篩選器 |
+| 6 | 未開始 | 功能 D | 組合追蹤、績效計算 |
+| 7（預留） | 未開始 | Claude API 整合 | `backend/ai/` 實作 |
+
+**Phase 1 vs 1.5 切分理由**：Phase 1 先打通「抓取 → 落庫 → API 觸發」的核心管線，驗證 job 系統與資料流設計正確；季報、事件等複雜度高的 collector 放 Phase 1.5。schema 一次定義完整（Phase 1 建表涵蓋 1.5 的欄位），避免之後重構。
+
+**Phase 2 依賴**：Phase 1 + 1.5 都完成後才啟動，確保個股頁可以一次完整呈現（股價、月營收、季報、事件）。
 
 ### 分階段規劃原則（MANDATORY）
 

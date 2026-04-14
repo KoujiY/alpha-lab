@@ -6,8 +6,8 @@
 
 | 檔案 | 內容 | 規劃於 Phase |
 |------|------|-------------|
-| `twse.md` | 台灣證券交易所（股價、成交量、除權息） | Phase 1 |
-| `mops.md` | 公開資訊觀測站（財報、法人持股、月營收） | Phase 1 |
-| `news.md` | 新聞 / 事件抓取策略 | Phase 1+ |
+| `twse.md` | TWSE 日股價（OHLCV）；Phase 1.5 加入三大法人、融資融券 | Phase 1 |
+| `mops.md` | MOPS 月營收；Phase 1.5 加入季報（合併損益/資產負債/現金流）、重大訊息 | Phase 1 |
+| `news.md` | 新聞抓取策略（暫緩，待 Phase 2+ 再評估是否需要） | Phase 2+ |
 
-Phase 0 只保留資料夾與本 README。
+Phase 0 只保留資料夾與本 README。Phase 1 建立 `twse.md` 與 `mops.md` 的初版（僅涵蓋該 Phase 實作的 collector），Phase 1.5 擴充。
