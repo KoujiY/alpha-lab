@@ -1,0 +1,57 @@
+# Node / Frontend
+node_modules/
+dist/
+.vite/
+*.log
+npm-debug.log*
+.env.local
+.env.development.local
+.env.production.local
+
+# Python / Backend
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data (本地持久層，不 commit)
+data/*.db
+data/*.db-journal
+data/raw/
+data/processed/
+data/reports/
+data/logs/
+data/cache/
+# 保留資料夾結構
+!data/.gitkeep
+!data/reports/.gitkeep
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Test artifacts
+test-results/
+playwright-report/
+coverage/
