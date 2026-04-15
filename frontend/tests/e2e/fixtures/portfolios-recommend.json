@@ -1,0 +1,78 @@
+{
+  "generated_at": "2026-04-15T20:00:00Z",
+  "calc_date": "2026-04-15",
+  "portfolios": [
+    {
+      "style": "conservative",
+      "label": "保守組",
+      "is_top_pick": false,
+      "holdings": [
+        {
+          "symbol": "2330",
+          "name": "台積電",
+          "weight": 0.3,
+          "score_breakdown": {
+            "symbol": "2330",
+            "calc_date": "2026-04-15",
+            "value_score": 60,
+            "growth_score": 70,
+            "dividend_score": 80,
+            "quality_score": 90,
+            "total_score": 80
+          }
+        }
+      ],
+      "expected_yield": 3.5,
+      "risk_score": 20,
+      "reasoning_ref": null
+    },
+    {
+      "style": "balanced",
+      "label": "平衡組",
+      "is_top_pick": true,
+      "holdings": [
+        {
+          "symbol": "2454",
+          "name": "聯發科",
+          "weight": 0.25,
+          "score_breakdown": {
+            "symbol": "2454",
+            "calc_date": "2026-04-15",
+            "value_score": 70,
+            "growth_score": 80,
+            "dividend_score": 60,
+            "quality_score": 75,
+            "total_score": 71
+          }
+        }
+      ],
+      "expected_yield": 4.0,
+      "risk_score": 40,
+      "reasoning_ref": null
+    },
+    {
+      "style": "aggressive",
+      "label": "積極組",
+      "is_top_pick": false,
+      "holdings": [
+        {
+          "symbol": "2603",
+          "name": "長榮",
+          "weight": 0.2,
+          "score_breakdown": {
+            "symbol": "2603",
+            "calc_date": "2026-04-15",
+            "value_score": 80,
+            "growth_score": 95,
+            "dividend_score": 40,
+            "quality_score": 60,
+            "total_score": 75
+          }
+        }
+      ],
+      "expected_yield": 2.5,
+      "risk_score": 65,
+      "reasoning_ref": null
+    }
+  ]
+}
