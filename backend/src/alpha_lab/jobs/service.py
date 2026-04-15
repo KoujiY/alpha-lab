@@ -29,10 +29,12 @@ from alpha_lab.collectors.runner import (
     upsert_institutional_trades,
     upsert_margin_trades,
     upsert_monthly_revenues,
+    upsert_stock_info,
 )
 from alpha_lab.collectors.twse import fetch_daily_prices
 from alpha_lab.collectors.twse_institutional import fetch_institutional_trades
 from alpha_lab.collectors.twse_margin import fetch_margin_trades
+from alpha_lab.collectors.twse_stock_info import fetch_stock_info
 from alpha_lab.jobs.types import JobType
 from alpha_lab.storage.models import Job
 
@@ -113,6 +115,14 @@ async def _dispatch(
             n = upsert_daily_prices(session, price_rows)
             session.commit()
         return f"upserted {n} price rows for {symbol} {year_month_str}"
+
+    if job_type is JobType.TWSE_STOCK_INFO:
+        symbols = params.get("symbols")
+        info_rows = await fetch_stock_info(symbols=symbols)
+        with session_factory() as session:
+            n = upsert_stock_info(session, info_rows)
+            session.commit()
+        return f"upserted {n} stock info rows"
 
     if job_type is JobType.MOPS_REVENUE:
         symbols = params.get("symbols")

@@ -1,8 +1,7 @@
 """Collector 執行層：把 Pydantic 輸出 upsert 到 DB。
 
-Stock 主資料採「若不存在就建立 placeholder」策略（name 用 symbol）。
-TODO: 公司基本資料同步（name / industry / listed_date）尚未實作，
-見 docs/knowledge/features/* 或後續 Phase 規劃。
+Stock 主資料採「若不存在就建立 placeholder」策略（name 用 symbol），再由
+`upsert_stock_info` 依 TWSE `t187ap03_L` 基本資料回補 name / industry / listed_date。
 """
 
 import json
@@ -21,6 +20,7 @@ from alpha_lab.schemas.institutional import (
 from alpha_lab.schemas.margin import MarginTrade as MarginTradeSchema
 from alpha_lab.schemas.price import DailyPrice
 from alpha_lab.schemas.revenue import MonthlyRevenue
+from alpha_lab.schemas.stock_info import StockInfo
 from alpha_lab.storage.models import Event as EventRow
 from alpha_lab.storage.models import (
     FinancialStatement as FinancialStatementRow,
@@ -274,5 +274,37 @@ def upsert_financial_statements(
         else:
             for k, v in fields.items():
                 setattr(existing, k, v)
+        count += 1
+    return count
+
+
+def upsert_stock_info(session: Session, rows: list[StockInfo]) -> int:
+    """upsert 上市公司基本資料（name / industry / listed_date）。回傳寫入筆數。
+
+    對既有 `stocks` row：UPDATE name / industry / listed_date（覆寫 placeholder）。
+    對不存在 symbol：INSERT 完整資料（不經 `_ensure_stock` placeholder 路徑）。
+
+    symbol 或 name 為空字串者視為無效 row 並略過（collector 已過濾，此處作防禦）。
+    """
+    count = 0
+    for row in rows:
+        symbol = row.symbol.strip()
+        name = row.name.strip()
+        if not symbol or not name:
+            continue
+        existing = session.get(Stock, symbol)
+        if existing is None:
+            session.add(
+                Stock(
+                    symbol=symbol,
+                    name=name,
+                    industry=row.industry,
+                    listed_date=row.listed_date,
+                )
+            )
+        else:
+            existing.name = name
+            existing.industry = row.industry
+            existing.listed_date = row.listed_date
         count += 1
     return count
