@@ -5,7 +5,7 @@ from datetime import UTC, date, datetime
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from alpha_lab.api.main import app
@@ -40,7 +40,7 @@ def _override_engine(test_engine: Engine) -> None:
     )
 
 
-def _seed_full_stock(session) -> None:
+def _seed_full_stock(session: Session) -> None:
     session.add(Stock(symbol="2330", name="台積電", industry="半導體"))
     session.add(
         PriceDaily(

@@ -87,6 +87,7 @@ def _load_financials(session: Session, symbol: str, limit: int) -> list[Financia
         select(FinancialStatement)
         .where(FinancialStatement.symbol == symbol)
         .order_by(desc(FinancialStatement.period))
+        .limit(limit * 2)
     ).scalars().all()
 
     by_period: dict[str, dict[str, object]] = {}
@@ -150,6 +151,7 @@ def _load_margin(session: Session, symbol: str, limit: int) -> list[MarginPoint]
 
 
 def _load_events(session: Session, symbol: str, limit: int) -> list[EventPoint]:
+    """載入個股事件，回傳新到舊排序（UI 時間軸顯示最新消息在上）。"""
     rows = session.execute(
         select(Event)
         .where(Event.symbol == symbol)
@@ -161,7 +163,7 @@ def _load_events(session: Session, symbol: str, limit: int) -> list[EventPoint]:
             id=r.id, event_datetime=r.event_datetime,
             event_type=r.event_type, title=r.title, content=r.content,
         )
-        for r in rows
+        for r in rows  # 事件刻意維持新到舊（UI 以時間軸顯示最新消息在上）
     ]
 
 
