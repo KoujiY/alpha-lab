@@ -33,10 +33,13 @@ def _build_ssl_context() -> ssl.SSLContext:
     return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
 
 
-def _parse_int(s: str) -> int:
-    if s in ("", "-", "N/A"):
+def _parse_int(s: object) -> int:
+    """去千分位後轉 int；TWSE 可能直接以 int/float 回傳，需一併處理。"""
+    if isinstance(s, (int, float)):
+        return int(s)
+    if s in ("", "-", "N/A", None):
         return 0
-    return int(s.replace(",", "").replace("+", ""))
+    return int(str(s).replace(",", "").replace("+", ""))
 
 
 def _looks_like_credit_table(t: dict[str, Any]) -> bool:

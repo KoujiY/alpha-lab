@@ -90,3 +90,58 @@ async def test_fetch_institutional_trades_http_error() -> None:
         mock.get("/rwd/zh/fund/T86").respond(500)
         with pytest.raises(httpx.HTTPStatusError):
             await fetch_institutional_trades(trade_date=date(2026, 4, 1))
+
+
+@pytest.mark.asyncio
+async def test_fetch_institutional_returns_empty_when_no_data() -> None:
+    with respx.mock(base_url="https://www.twse.com.tw") as mock:
+        mock.get("/rwd/zh/fund/T86").respond(
+            json={"stat": "很抱歉，沒有符合條件的資料"}
+        )
+        result = await fetch_institutional_trades(date(2026, 4, 15))
+    assert result == []
+
+
+@pytest.mark.asyncio
+async def test_fetch_institutional_handles_numeric_cells() -> None:
+    """TWSE 有時把數字欄位直接以 int/float 回傳，而非字串。"""
+    fields = [
+        "證券代號", "證券名稱",
+        "外陸資買賣超股數(不含外資自營商)",
+        "外資自營商買賣超股數",
+        "投信買賣超股數",
+        "自營商買賣超股數",
+        "三大法人買賣超股數",
+    ]
+    # 注意：0 和 1000 以 int 回傳，非 "0" / "1,000"
+    row = ["2330", "台積電", 1000, 0, 500, 200, 1700]
+    with respx.mock(base_url="https://www.twse.com.tw") as mock:
+        mock.get("/rwd/zh/fund/T86").respond(
+            json={"stat": "OK", "fields": fields, "data": [row]}
+        )
+        result = await fetch_institutional_trades(date(2026, 4, 15))
+    assert len(result) == 1
+    assert result[0].foreign_net == 1000
+    assert result[0].trust_net == 500
+    assert result[0].total_net == 1700
+
+
+@pytest.mark.asyncio
+async def test_fetch_institutional_skips_short_rows() -> None:
+    fields = [
+        "證券代號", "證券名稱",
+        "外陸資買賣超股數(不含外資自營商)",
+        "外資自營商買賣超股數",
+        "投信買賣超股數",
+        "自營商買賣超股數",
+        "三大法人買賣超股數",
+    ]
+    good_row = ["2330", "台積電", "1000", "0", "500", "200", "1700"]
+    short_row = ["9999", "X"]
+    with respx.mock(base_url="https://www.twse.com.tw") as mock:
+        mock.get("/rwd/zh/fund/T86").respond(
+            json={"stat": "OK", "fields": fields, "data": [good_row, short_row]}
+        )
+        result = await fetch_institutional_trades(date(2026, 4, 15))
+    assert len(result) == 1
+    assert result[0].symbol == "2330"

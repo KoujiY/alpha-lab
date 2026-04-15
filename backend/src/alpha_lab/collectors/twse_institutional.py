@@ -20,11 +20,16 @@ def _build_ssl_context() -> ssl.SSLContext:
     return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
 
 
-def _parse_int(s: str) -> int:
-    """去千分位後轉 int；空字串或 '-' 視為 0。"""
-    if s in ("", "-", "N/A"):
+def _parse_int(s: object) -> int:
+    """去千分位後轉 int；空字串或 '-' 視為 0。
+
+    TWSE 有時會直接以 int/float 回傳數字欄位，需一併處理。
+    """
+    if isinstance(s, (int, float)):
+        return int(s)
+    if s in ("", "-", "N/A", None):
         return 0
-    return int(s.replace(",", "").replace("+", ""))
+    return int(str(s).replace(",", "").replace("+", ""))
 
 
 def _find_field_index(fields: list[str], *candidates: str) -> int:
@@ -62,8 +67,12 @@ async def fetch_institutional_trades(
         resp.raise_for_status()
         payload = resp.json()
 
-    if payload.get("stat") != "OK":
-        raise ValueError(f"TWSE T86 returned non-OK stat: {payload.get('stat')}")
+    stat = payload.get("stat", "")
+    if stat != "OK":
+        if "沒有符合條件" in stat:
+            print(f"[twse_institutional] no data for {trade_date} (stat={stat})")
+            return []
+        raise ValueError(f"TWSE T86 returned non-OK stat: {stat}")
 
     fields: list[str] = payload["fields"]
     idx_symbol = _find_field_index(fields, "證券代號")
@@ -81,8 +90,23 @@ async def fetch_institutional_trades(
     idx_total = _find_field_index(fields, "三大法人買賣超股數")
 
     symbol_filter = set(symbols) if symbols else None
+    required_indices = [
+        idx_symbol,
+        idx_foreign_main,
+        idx_foreign_dealer,
+        idx_trust,
+        idx_dealer_total,
+        idx_total,
+    ]
+    max_idx = max(i for i in required_indices if i is not None)
     results: list[InstitutionalTrade] = []
     for row in payload.get("data", []):
+        if len(row) <= max_idx:
+            print(
+                f"[twse_institutional] skip malformed row "
+                f"(len={len(row)}, need>{max_idx}): {row[:4]}..."
+            )
+            continue
         symbol = row[idx_symbol].strip()
         if symbol_filter is not None and symbol not in symbol_filter:
             continue

@@ -144,6 +144,28 @@ async def test_fetch_margin_trades_raises_on_other_non_ok_stat() -> None:
 
 
 @pytest.mark.asyncio
+async def test_fetch_margin_trades_handles_numeric_cells() -> None:
+    """TWSE 有時把數字欄位直接以 int 回傳。"""
+    # 以 int 取代 "1,000" 等字串
+    row = [
+        "2330", "台積電",
+        100, 50, 0, 20000, 20050, 0,
+        20, 10, 0, 2000, 2010, 0,
+        0, "",
+    ]
+    payload = {
+        "stat": "OK",
+        "tables": [SUMMARY_TABLE, _credit_table([row])],
+    }
+    with respx.mock(base_url="https://www.twse.com.tw") as mock:
+        mock.get("/rwd/zh/marginTrading/MI_MARGN").respond(json=payload)
+        result = await fetch_margin_trades(trade_date=date(2026, 4, 15))
+    assert len(result) == 1
+    assert result[0].margin_buy == 100
+    assert result[0].margin_balance == 20050
+
+
+@pytest.mark.asyncio
 async def test_fetch_margin_trades_http_error() -> None:
     with respx.mock(base_url="https://www.twse.com.tw") as mock:
         mock.get("/rwd/zh/marginTrading/MI_MARGN").respond(500)
