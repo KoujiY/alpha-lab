@@ -43,7 +43,7 @@ def test_backfill_updates_existing_stocks(tmp_path: Path) -> None:
         s.add(Stock(symbol="9999", name="測試"))
 
     updated = backfill()
-    assert updated >= 1
+    assert updated == 1
 
     with session_scope() as s:
         stock = s.get(Stock, "2330")
