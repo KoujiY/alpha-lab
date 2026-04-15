@@ -6,7 +6,9 @@ GET /api/stocks/{symbol}/revenues?limit= → 月營收細端點
 ... (see A3)
 """
 
-from fastapi import APIRouter, HTTPException
+from datetime import date as _date
+
+from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
@@ -186,3 +188,79 @@ async def get_stock_overview(symbol: str) -> StockOverview:
             margin=_load_margin(session, symbol, MARGIN_DEFAULT_LIMIT),
             events=_load_events(session, symbol, EVENTS_DEFAULT_LIMIT),
         )
+
+
+@router.get("/stocks/{symbol}/prices", response_model=list[DailyPricePoint])
+async def get_stock_prices(
+    symbol: str,
+    start: _date | None = Query(None),  # noqa: B008
+    end: _date | None = Query(None),  # noqa: B008
+    limit: int = Query(PRICES_DEFAULT_LIMIT, ge=1, le=500),
+) -> list[DailyPricePoint]:
+    with session_scope() as session:
+        _get_stock_or_404(session, symbol)
+        stmt = select(PriceDaily).where(PriceDaily.symbol == symbol)
+        if start is not None:
+            stmt = stmt.where(PriceDaily.trade_date >= start)
+        if end is not None:
+            stmt = stmt.where(PriceDaily.trade_date <= end)
+        stmt = stmt.order_by(desc(PriceDaily.trade_date)).limit(limit)
+        rows = session.execute(stmt).scalars().all()
+        return [
+            DailyPricePoint(
+                trade_date=r.trade_date,
+                open=r.open, high=r.high, low=r.low, close=r.close,
+                volume=r.volume,
+            )
+            for r in reversed(rows)
+        ]
+
+
+@router.get("/stocks/{symbol}/revenues", response_model=list[RevenuePoint])
+async def get_stock_revenues(
+    symbol: str,
+    limit: int = Query(REVENUES_DEFAULT_LIMIT, ge=1, le=120),
+) -> list[RevenuePoint]:
+    with session_scope() as session:
+        _get_stock_or_404(session, symbol)
+        return _load_revenues(session, symbol, limit)
+
+
+@router.get("/stocks/{symbol}/financials", response_model=list[FinancialPoint])
+async def get_stock_financials(
+    symbol: str,
+    limit: int = Query(FINANCIALS_DEFAULT_LIMIT, ge=1, le=40),
+) -> list[FinancialPoint]:
+    with session_scope() as session:
+        _get_stock_or_404(session, symbol)
+        return _load_financials(session, symbol, limit)
+
+
+@router.get("/stocks/{symbol}/institutional", response_model=list[InstitutionalPoint])
+async def get_stock_institutional(
+    symbol: str,
+    limit: int = Query(INSTITUTIONAL_DEFAULT_LIMIT, ge=1, le=500),
+) -> list[InstitutionalPoint]:
+    with session_scope() as session:
+        _get_stock_or_404(session, symbol)
+        return _load_institutional(session, symbol, limit)
+
+
+@router.get("/stocks/{symbol}/margin", response_model=list[MarginPoint])
+async def get_stock_margin(
+    symbol: str,
+    limit: int = Query(MARGIN_DEFAULT_LIMIT, ge=1, le=500),
+) -> list[MarginPoint]:
+    with session_scope() as session:
+        _get_stock_or_404(session, symbol)
+        return _load_margin(session, symbol, limit)
+
+
+@router.get("/stocks/{symbol}/events", response_model=list[EventPoint])
+async def get_stock_events(
+    symbol: str,
+    limit: int = Query(EVENTS_DEFAULT_LIMIT, ge=1, le=200),
+) -> list[EventPoint]:
+    with session_scope() as session:
+        _get_stock_or_404(session, symbol)
+        return _load_events(session, symbol, limit)
