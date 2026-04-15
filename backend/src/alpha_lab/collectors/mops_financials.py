@@ -40,6 +40,30 @@ _INCOME_FIELDS: dict[str, tuple[str, ...]] = {
     "eps": ("基本每股盈餘(元)", "基本每股盈餘（元）", "基本每股盈餘"),
 }
 
+_BALANCE_FIELDS: dict[str, tuple[str, ...]] = {
+    "total_assets": ("資產總額", "資產總計"),
+    "total_liabilities": ("負債總額", "負債總計"),
+    "total_equity": ("權益總額", "權益總計"),
+}
+
+_CASHFLOW_FIELDS: dict[str, tuple[str, ...]] = {
+    "operating_cf": (
+        "營業活動之淨現金流入(流出)",
+        "營業活動之淨現金流入（流出）",
+        "營業活動現金流量",
+    ),
+    "investing_cf": (
+        "投資活動之淨現金流入(流出)",
+        "投資活動之淨現金流入（流出）",
+        "投資活動現金流量",
+    ),
+    "financing_cf": (
+        "籌資活動之淨現金流入(流出)",
+        "籌資活動之淨現金流入（流出）",
+        "籌資活動現金流量",
+    ),
+}
+
 
 def _build_ssl_context() -> ssl.SSLContext:
     return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
@@ -143,6 +167,108 @@ async def fetch_income_statement(
                 operating_cf=None,
                 investing_cf=None,
                 financing_cf=None,
+                raw_json=item,
+            )
+        )
+    return results
+
+
+async def fetch_balance_sheet(
+    symbols: list[str] | None = None,
+) -> list[FinancialStatement]:
+    """抓取最新一期全上市公司合併資產負債表。
+
+    Args:
+        symbols: 若提供，僅回傳清單內代號；None 代表全部。
+    """
+    payload = await _fetch_payload(BALANCE_PATH)
+    symbol_filter = _filter(symbols)
+
+    results: list[FinancialStatement] = []
+    for item in payload:
+        symbol = str(item.get("公司代號", "")).strip()
+        if not symbol:
+            continue
+        if symbol_filter is not None and symbol not in symbol_filter:
+            continue
+        roc_year = str(item.get("年度", "")).strip()
+        quarter = str(item.get("季別", "")).strip()
+        if not roc_year or not quarter:
+            continue
+        period = _build_period(roc_year, quarter)
+        results.append(
+            FinancialStatement(
+                symbol=symbol,
+                period=period,
+                statement_type=StatementType.BALANCE,
+                revenue=None,
+                gross_profit=None,
+                operating_income=None,
+                net_income=None,
+                eps=None,
+                total_assets=_parse_int_or_none(
+                    _lookup(item, _BALANCE_FIELDS["total_assets"])
+                ),
+                total_liabilities=_parse_int_or_none(
+                    _lookup(item, _BALANCE_FIELDS["total_liabilities"])
+                ),
+                total_equity=_parse_int_or_none(
+                    _lookup(item, _BALANCE_FIELDS["total_equity"])
+                ),
+                operating_cf=None,
+                investing_cf=None,
+                financing_cf=None,
+                raw_json=item,
+            )
+        )
+    return results
+
+
+async def fetch_cashflow_statement(
+    symbols: list[str] | None = None,
+) -> list[FinancialStatement]:
+    """抓取最新一期全上市公司合併現金流量表。
+
+    Args:
+        symbols: 若提供，僅回傳清單內代號；None 代表全部。
+    """
+    payload = await _fetch_payload(CASHFLOW_PATH)
+    symbol_filter = _filter(symbols)
+
+    results: list[FinancialStatement] = []
+    for item in payload:
+        symbol = str(item.get("公司代號", "")).strip()
+        if not symbol:
+            continue
+        if symbol_filter is not None and symbol not in symbol_filter:
+            continue
+        roc_year = str(item.get("年度", "")).strip()
+        quarter = str(item.get("季別", "")).strip()
+        if not roc_year or not quarter:
+            continue
+        period = _build_period(roc_year, quarter)
+        results.append(
+            FinancialStatement(
+                symbol=symbol,
+                period=period,
+                statement_type=StatementType.CASHFLOW,
+                revenue=None,
+                gross_profit=None,
+                operating_income=None,
+                net_income=None,
+                eps=None,
+                total_assets=None,
+                total_liabilities=None,
+                total_equity=None,
+                operating_cf=_parse_int_or_none(
+                    _lookup(item, _CASHFLOW_FIELDS["operating_cf"])
+                ),
+                investing_cf=_parse_int_or_none(
+                    _lookup(item, _CASHFLOW_FIELDS["investing_cf"])
+                ),
+                financing_cf=_parse_int_or_none(
+                    _lookup(item, _CASHFLOW_FIELDS["financing_cf"])
+                ),
                 raw_json=item,
             )
         )
