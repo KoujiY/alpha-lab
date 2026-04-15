@@ -12,6 +12,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session, sessionmaker
 
+from alpha_lab.analysis.pipeline import score_all
 from alpha_lab.collectors._twse_common import TWSERateLimitError
 from alpha_lab.collectors.mops import fetch_latest_monthly_revenues
 from alpha_lab.collectors.mops_events import fetch_latest_events
@@ -170,5 +171,16 @@ async def _dispatch(
             n = upsert_financial_statements(session, total_rows)
             session.commit()
         return f"upserted {n} financial statement rows ({sorted(types)})"
+
+    if job_type is JobType.SCORE:
+        date_str = params.get("date")
+        calc_date = (
+            date.fromisoformat(str(date_str))
+            if isinstance(date_str, str)
+            else datetime.now(UTC).date()
+        )
+        with session_factory() as session:
+            n = score_all(session, calc_date)
+        return f"scored {n} symbols for {calc_date.isoformat()}"
 
     raise ValueError(f"unknown job type: {job_type}")
