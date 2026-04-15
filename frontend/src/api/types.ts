@@ -96,3 +96,18 @@ export interface GlossaryTerm {
   detail: string;
   related: string[];
 }
+
+export interface FactorBreakdown {
+  symbol: string;
+  calc_date: string;
+  value_score: number | null;
+  growth_score: number | null;
+  dividend_score: number | null;
+  quality_score: number | null;
+  total_score: number | null;
+}
+
+export interface ScoreResponse {
+  symbol: string;
+  latest: FactorBreakdown | null;
+}
