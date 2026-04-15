@@ -38,6 +38,10 @@ related: [mops.md, events.md, ../architecture/data-flow.md, ../architecture/data
 - **欄位順序會隨年份變動**：2018 年後多出「外資自營商」獨立欄位；實作以 `_find_idx(fields, name)` 從欄位名稱查 index，避開硬編位置
 - TWSE **實際回傳的 field 名稱與文件不一致**（B1 修復期間發現）：`外陸資買進股數(不含外資自營商)`、`外資自營商買賣超股數` 等名稱含全形括號；逐字匹配且需提供多個候選 key fallback
 - 買賣超單位為「股」；應用層需自行換算張數（÷1000）
+- **邊界防禦（2026-04-15 修）**：
+  - `stat` 含 `"沒有符合條件"`（假日/盤中/資料未發佈）→ 印 log 後回 `[]`，不再拋 `ValueError`
+  - `data` 列偶有長度短於預期欄位 index → 跳過該列 + 印 log，不再 `IndexError`
+  - `_parse_int` 接受 `int`/`float`/`None`/字串；TWSE 有時回傳數值型 cell（非字串）
 
 ### MI_MARGN（融資融券）
 
@@ -47,12 +51,15 @@ payload 結構為多層 tables：
 - `_find_credit_table` 兼容 `tables` 與 `creditList` 兩種包裹格式（C1 修復期間發現舊版 payload）
 - `_resolve_group_indices(groups, fields, group_title)` 把某個 group（融資 / 融券）的欄位索引投射到原始 `fields` index，才能正確取值
 - 融資融券單位為「張」
+- **邊界防禦（2026-04-15 修）**：`stat` 含 `"沒有符合條件"` → 印 log 後回 `[]`；`_parse_int` 同樣接受數值型 cell
 
 ### 通用坑
 
 - TWSE 對短時間多次請求會擋 IP；smoke 測試需手動節流（1 分鐘以上）
 - ROC 年份轉換：`115 + 1911 = 2026`
 - 實作以名稱查欄位優於靠 index 位置（格式變動容忍度較高）
+- **`stat` 有多種 non-OK**：`"很抱歉，沒有符合條件的資料"`（假日/盤中/未發佈）應當作空結果；其他（如 `"系統忙線中"`、`"查詢無資料"` 等）仍視為錯誤拋出
+- **JSON cell 型別不一致**：TWSE 時而回字串（含千分位逗號）、時而回 int/float 純數值；collector 的 `_parse_int` 必須同時處理兩者
 
 ### Phase 2+ 規劃新增
 

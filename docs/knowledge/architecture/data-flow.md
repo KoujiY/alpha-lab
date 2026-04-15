@@ -59,9 +59,12 @@ API 輪詢 / CLI 印出結果
 
 ### 批次入口：`scripts/daily_collect.py`
 
-- CLI 封裝「三大法人 + 融資融券 + 重大訊息」三類 daily job
+- CLI 封裝「TWSE 日成交 + 三大法人 + 融資融券 + 重大訊息」四類 daily job
 - 不走 HTTP API，直接呼叫 `create_job` + `run_job_sync`
-- 未來若要排程，以 OS cron / Windows 排程器呼叫此腳本（Phase 1.5 不做排程本身）
+- **`--symbols` 省略時**：從 DB `stocks` 表讀 watchlist 當 TWSE 日成交的 symbols 清單（逐檔抓）；若 DB 為空才真正 skip（2026-04-15 加入）
+- 三大法人 / 融資融券 / 重大訊息則不吃 watchlist，保持 `symbols=None` 意即「全市場」
+- 未來若要排程，以 OS cron / Windows 排程器呼叫此腳本（Phase 1.5/2 階段不做排程本身）
+- **實務注意**：全 watchlist（上千檔）逐檔抓耗時 20-40 分鐘且有 TWSE 限流風險，平時建議傳 `--symbols` 顯式指定
 
 ## 關鍵檔案
 
