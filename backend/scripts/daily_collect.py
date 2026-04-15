@@ -5,7 +5,10 @@
     python scripts/daily_collect.py --symbols 2330,2317 --date 2026-04-11
     python scripts/daily_collect.py --all --date 2026-04-11            # 明示意圖：對 DB watchlist 全體逐檔抓 prices
 
-會依序跑：TWSE 日成交（需 --symbols 或 --all） → 三大法人 → 融資融券 → 重大訊息。
+會依序跑：TWSE 上市公司基本資料 → TWSE 日成交（需 --symbols 或 --all） → 三大法人
+→ 融資融券 → 重大訊息。公司基本資料擺最前面，讓後續 collector 的 `_ensure_stock`
+看到 DB 時有正確的 name / industry / listed_date。
+
 月營收、季報不列入 daily（發布頻率不同），請手動觸發對應 job。
 
 全市場保險：`--symbols` 與 `--all` 互斥；未傳兩者之一時 prices 會被 skip，避免誤觸
@@ -115,6 +118,16 @@ async def run_daily_collect(
     )
 
     results: list[tuple[str, str, str]] = []
+
+    # 公司基本資料放最前面：後續 collector 若遇到新 symbol，placeholder 會被填充
+    # 為正式 name / industry / listed_date；若失敗（例如 TWSE WAF 擋）不影響其他 job。
+    stock_info_status, stock_info_summary = await _run_one(
+        "TWSE stock info",
+        JobType.TWSE_STOCK_INFO,
+        {"symbols": symbols},
+        session_factory,
+    )
+    results.append(("TWSE stock info", stock_info_status, stock_info_summary))
 
     price_symbols: list[str] = []
     if symbols:
