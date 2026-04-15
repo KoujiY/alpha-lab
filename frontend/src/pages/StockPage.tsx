@@ -1,7 +1,9 @@
 import { useParams } from "react-router-dom";
 
+import { FinancialsSection } from "@/components/stock/FinancialsSection";
 import { KeyMetrics } from "@/components/stock/KeyMetrics";
 import { PriceChart } from "@/components/stock/PriceChart";
+import { RevenueSection } from "@/components/stock/RevenueSection";
 import { StockHeader } from "@/components/stock/StockHeader";
 import { useStockOverview } from "@/hooks/useStockOverview";
 
@@ -31,6 +33,8 @@ export function StockPage() {
         latestPrice={data.prices[data.prices.length - 1]}
         latestFinancial={data.financials[data.financials.length - 1]}
       />
+      <RevenueSection points={data.revenues} />
+      <FinancialsSection points={data.financials} />
     </div>
   );
 }
