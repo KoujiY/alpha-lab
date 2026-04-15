@@ -1,14 +1,16 @@
-import { HealthStatus } from "@/components/HealthStatus";
+import { Route, Routes } from "react-router-dom";
+import { AppLayout } from "@/layouts/AppLayout";
+import { HomePage } from "@/pages/HomePage";
+import { StockPage } from "@/pages/StockPage";
 
 function App() {
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center">
-      <div className="text-center space-y-4">
-        <h1 className="text-4xl font-bold">alpha-lab</h1>
-        <p className="text-slate-400">Phase 0 骨架運作中</p>
-        <HealthStatus />
-      </div>
-    </main>
+    <Routes>
+      <Route element={<AppLayout />}>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/stocks/:symbol" element={<StockPage />} />
+      </Route>
+    </Routes>
   );
 }
 
