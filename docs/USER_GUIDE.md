@@ -65,6 +65,31 @@ pnpm dev
 | 6 | 組合追蹤（D） |
 | 7 | Claude API 整合（預留） |
 
+## Rebuild 本地資料庫
+
+Phase 1.5 新增 4 個 table（`institutional_trades`、`margin_trades`、`events`、`financial_statements`）。
+重啟 uvicorn 會自動 `create_all` 補上新表，舊表資料保留。
+
+若要完全重建（例如測試乾淨起點）：
+
+```bash
+# 1. 停掉 uvicorn
+# 2. 刪除 DB
+rm data/alpha_lab.db
+
+# 3. 重啟 uvicorn，startup 會自動重建全部 8 個 table
+cd backend
+.venv/Scripts/python.exe -m uvicorn alpha_lab.api.main:app --reload
+```
+
+確認 8 個 table 都在：
+
+```bash
+.venv/Scripts/python.exe -c "import sqlite3; c=sqlite3.connect('../data/alpha_lab.db'); print(sorted([r[0] for r in c.execute('SELECT name FROM sqlite_master WHERE type=\"table\"')]))"
+```
+
+預期輸出：`['events', 'financial_statements', 'institutional_trades', 'jobs', 'margin_trades', 'prices_daily', 'revenues_monthly', 'stocks']`
+
 ## 常見問題
 
 ### Q：數據會更新嗎？
