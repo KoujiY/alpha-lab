@@ -1,7 +1,7 @@
 ---
 domain: architecture
-updated: 2026-04-15
-related: [data-models.md, ../collectors/twse.md, ../collectors/mops.md, ../collectors/mops-cashflow.md, ../collectors/events.md, ../domain/scoring.md, ../features/portfolio/recommender.md]
+updated: 2026-04-16
+related: [data-models.md, ../collectors/twse.md, ../collectors/twse-stock-info.md, ../collectors/mops.md, ../collectors/mops-cashflow.md, ../collectors/events.md, ../domain/scoring.md, ../features/portfolio/recommender.md]
 ---
 
 # 資料流
@@ -39,6 +39,7 @@ API 輪詢 / CLI 印出結果
 | JobType | collector 函式 | 落庫 table |
 |---------|---------------|-----------|
 | `twse_prices` | `fetch_daily_prices` | `prices_daily` |
+| `twse_stock_info` | `fetch_stock_info`（Pre-Phase 4 Step 0） | `stocks`（name / industry / listed_date） |
 | `mops_revenue` | `fetch_latest_monthly_revenues` | `revenues_monthly` |
 | `twse_institutional` | `fetch_institutional_trades` | `institutional_trades` |
 | `twse_margin` | `fetch_margin_trades` | `margin_trades` |
@@ -61,7 +62,9 @@ API 輪詢 / CLI 印出結果
 
 ### 批次入口：`scripts/daily_collect.py`
 
-- CLI 封裝「TWSE 日成交 + 三大法人 + 融資融券 + 重大訊息」四類 daily job
+- CLI 封裝「TWSE 上市公司基本資料 + TWSE 日成交 + 三大法人 + 融資融券 + 重大訊息」五類 daily job
+- **上市公司基本資料放最前面**：後續 collector 若遇到新 symbol，`stocks` 表會已備好
+  正式 name / industry / listed_date，而不是 placeholder（Pre-Phase 4 Step 0 起）
 - 不走 HTTP API，直接呼叫 `create_job` + `run_job_sync`
 - **Prices flag（2026-04-15 加入全市場保險）**：`--symbols` 與 `--all` 互斥
   - `--symbols 2330,2317` → 用傳入清單逐檔抓（最常見用法）
