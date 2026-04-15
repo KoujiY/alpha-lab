@@ -6,8 +6,14 @@ Stock 主資料採「若不存在就建立 placeholder」策略（name 用 symbo
 
 from sqlalchemy.orm import Session
 
+from alpha_lab.schemas.institutional import (
+    InstitutionalTrade as InstitutionalTradeSchema,
+)
 from alpha_lab.schemas.price import DailyPrice
 from alpha_lab.schemas.revenue import MonthlyRevenue
+from alpha_lab.storage.models import (
+    InstitutionalTrade as InstitutionalTradeRow,
+)
 from alpha_lab.storage.models import PriceDaily, RevenueMonthly, Stock
 
 
@@ -71,5 +77,36 @@ def upsert_monthly_revenues(session: Session, rows: list[MonthlyRevenue]) -> int
             existing.revenue = row.revenue
             existing.yoy_growth = row.yoy_growth
             existing.mom_growth = row.mom_growth
+        count += 1
+    return count
+
+
+def upsert_institutional_trades(
+    session: Session, rows: list[InstitutionalTradeSchema]
+) -> int:
+    """upsert 三大法人買賣超。回傳寫入筆數。"""
+    count = 0
+    for row in rows:
+        _ensure_stock(session, row.symbol)
+        existing = session.get(
+            InstitutionalTradeRow,
+            {"symbol": row.symbol, "trade_date": row.trade_date},
+        )
+        if existing is None:
+            session.add(
+                InstitutionalTradeRow(
+                    symbol=row.symbol,
+                    trade_date=row.trade_date,
+                    foreign_net=row.foreign_net,
+                    trust_net=row.trust_net,
+                    dealer_net=row.dealer_net,
+                    total_net=row.total_net,
+                )
+            )
+        else:
+            existing.foreign_net = row.foreign_net
+            existing.trust_net = row.trust_net
+            existing.dealer_net = row.dealer_net
+            existing.total_net = row.total_net
         count += 1
     return count

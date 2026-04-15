@@ -13,8 +13,13 @@ from typing import Any
 from sqlalchemy.orm import Session, sessionmaker
 
 from alpha_lab.collectors.mops import fetch_latest_monthly_revenues
-from alpha_lab.collectors.runner import upsert_daily_prices, upsert_monthly_revenues
+from alpha_lab.collectors.runner import (
+    upsert_daily_prices,
+    upsert_institutional_trades,
+    upsert_monthly_revenues,
+)
 from alpha_lab.collectors.twse import fetch_daily_prices
+from alpha_lab.collectors.twse_institutional import fetch_institutional_trades
 from alpha_lab.jobs.types import JobType
 from alpha_lab.storage.models import Job
 
@@ -94,5 +99,18 @@ async def _dispatch(
             n = upsert_monthly_revenues(session, revenue_rows)
             session.commit()
         return f"upserted {n} revenue rows"
+
+    if job_type is JobType.TWSE_INSTITUTIONAL:
+        trade_date_str = params["trade_date"]  # "YYYY-MM-DD"
+        year, month, day = trade_date_str.split("-")
+        symbols = params.get("symbols")
+        inst_rows = await fetch_institutional_trades(
+            trade_date=date(int(year), int(month), int(day)),
+            symbols=symbols,
+        )
+        with session_factory() as session:
+            n = upsert_institutional_trades(session, inst_rows)
+            session.commit()
+        return f"upserted {n} institutional rows for {trade_date_str}"
 
     raise ValueError(f"unknown job type: {job_type}")
