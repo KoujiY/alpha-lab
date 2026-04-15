@@ -1,10 +1,9 @@
-"""MOPS 季報三表 collector。
+"""MOPS 季報三表 collector（income / balance / cashflow）。
 
-資料源：TWSE OpenAPI 彙總端點（v1/opendata/t187ap06/07/10_L_ci）
-回傳：list[FinancialStatement]（以 statement_type 區分三表）
+資料源：TWSE OpenAPI 彙總端點（v1/opendata/t187ap06/07/10_L_ci），全市場最新一期。
+回傳：list[FinancialStatement]（以 statement_type 區分三表）。
 
-Phase 1.5 Task E1：僅實作 income（合併綜合損益表）。
-balance / cashflow 留待 E2、E3。
+歷史季 / 特定個股的 cashflow 補抓走 `mops_cashflow.py`（t164sb05 HTML scrape）。
 
 注意：TWSE OpenAPI 端點名稱與欄位名偶有調整。本模組在欄位名查找上採「多候選」容忍策略，
 若 smoke 測試仍對不上實際 payload，請用 curl 確認後更新欄位候選清單與 sample，

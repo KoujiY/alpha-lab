@@ -1,7 +1,8 @@
 """Collector 執行層：把 Pydantic 輸出 upsert 到 DB。
 
-Stock 主資料採「若不存在就建立 placeholder」策略（name 用 symbol）；
-正式的公司基本資料同步未在 Phase 1 範圍內。
+Stock 主資料採「若不存在就建立 placeholder」策略（name 用 symbol）。
+TODO: 公司基本資料同步（name / industry / listed_date）尚未實作，
+見 docs/knowledge/features/* 或後續 Phase 規劃。
 """
 
 import json

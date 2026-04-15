@@ -474,7 +474,7 @@ GET /api/glossary/K線
 
 **Phase 2 依賴**：Phase 1 + 1.5 都完成後才啟動，確保個股頁可以一次完整呈現（股價、月營收、季報、事件）。
 
-[^phase15-cashflow]: **現金流量表延後到 Phase 3**：TWSE OpenAPI 沒有現金流 endpoint，原 Phase 1.5 計畫走 MOPS t164sb05 HTML 爬蟲，但該來源解析複雜且 Phase 1.5/2 尚無下游消費者（Phase 2 個股頁不需 FCF）。決定延後到 Phase 3 實作多因子評分引擎的 FCF 因子時，再一併補 MOPS t164sb05 HTML scrape。`financial_statements` 表 schema 已預留 `statement_type='cashflow'`，collector 與 upsert 皆可直接擴充。
+[^phase15-cashflow]: **現金流現有兩條路徑**：Phase 1.5 實作走 TWSE OpenAPI `t187ap10_L_ci`（全市場最新一期，併入 `MOPS_FINANCIALS` job）；Phase 3 為了 FCF 因子需要多季歷史，再補 MOPS `t164sb05` HTML scrape（per-symbol/period，獨立 `MOPS_CASHFLOW` job）。兩者都寫 `financial_statements.statement_type='cashflow'`，不衝突；歷史回填用後者，日常最新季可用前者。
 
 ### 分階段規劃原則（MANDATORY）
 
