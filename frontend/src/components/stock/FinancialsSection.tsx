@@ -1,4 +1,5 @@
 import type { FinancialPoint } from "@/api/types";
+import { TermTooltip } from "@/components/TermTooltip";
 
 interface FinancialsSectionProps {
   points: FinancialPoint[];
@@ -30,7 +31,9 @@ export function FinancialsSection({ points }: FinancialsSectionProps) {
               <th className="text-right px-3 py-2">毛利</th>
               <th className="text-right px-3 py-2">營業利益</th>
               <th className="text-right px-3 py-2">淨利</th>
-              <th className="text-right px-3 py-2">EPS</th>
+              <th className="text-right px-3 py-2">
+                <TermTooltip term="EPS">EPS</TermTooltip>
+              </th>
               <th className="text-right px-3 py-2">股東權益</th>
             </tr>
           </thead>

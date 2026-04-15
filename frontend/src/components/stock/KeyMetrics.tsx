@@ -1,4 +1,7 @@
+import type { ReactNode } from "react";
+
 import type { DailyPricePoint, FinancialPoint } from "@/api/types";
+import { TermTooltip } from "@/components/TermTooltip";
 
 interface KeyMetricsProps {
   latestPrice: DailyPricePoint | undefined;
@@ -20,11 +23,11 @@ export function KeyMetrics({ latestPrice, latestFinancial }: KeyMetricsProps) {
         value={latestPrice ? latestPrice.close.toFixed(2) : "—"}
       />
       <Metric
-        label="最新 EPS"
+        label={<TermTooltip term="EPS">最新 EPS</TermTooltip>}
         value={eps != null ? eps.toFixed(2) : "—"}
       />
       <Metric
-        label="本益比 (PE)"
+        label={<TermTooltip term="PE">本益比 (PE)</TermTooltip>}
         value={pe != null ? pe.toFixed(1) : "—"}
       />
       <Metric
@@ -35,7 +38,7 @@ export function KeyMetrics({ latestPrice, latestFinancial }: KeyMetricsProps) {
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({ label, value }: { label: ReactNode; value: string }) {
   return (
     <div className="bg-slate-900 rounded p-3 border border-slate-800">
       <div className="text-xs text-slate-500">{label}</div>

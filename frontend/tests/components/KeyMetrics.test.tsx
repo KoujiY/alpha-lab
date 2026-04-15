@@ -1,4 +1,6 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 
 import { KeyMetrics } from "@/components/stock/KeyMetrics";
@@ -16,14 +18,21 @@ const fin: FinancialPoint = {
   total_assets: null, total_liabilities: null, total_equity: null,
 };
 
+function renderWithQuery(ui: ReactNode) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+}
+
 describe("KeyMetrics", () => {
   it("computes PE from close / eps", () => {
-    render(<KeyMetrics latestPrice={price} latestFinancial={fin} />);
+    renderWithQuery(<KeyMetrics latestPrice={price} latestFinancial={fin} />);
     expect(screen.getByText("60.5")).toBeInTheDocument();
   });
 
   it("renders em dashes when data missing", () => {
-    render(<KeyMetrics latestPrice={undefined} latestFinancial={undefined} />);
+    renderWithQuery(<KeyMetrics latestPrice={undefined} latestFinancial={undefined} />);
     expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(3);
   });
 });

@@ -9,6 +9,7 @@ import {
 } from "recharts";
 
 import type { RevenuePoint } from "@/api/types";
+import { TermTooltip } from "@/components/TermTooltip";
 
 interface RevenueSectionProps {
   points: RevenuePoint[];
@@ -22,7 +23,9 @@ export function RevenueSection({ points }: RevenueSectionProps) {
   }));
   return (
     <section aria-label="月營收">
-      <h2 className="text-xl font-semibold mb-3">月營收（近 12 個月）</h2>
+      <h2 className="text-xl font-semibold mb-3">
+        <TermTooltip term="月營收">月營收</TermTooltip>（近 12 個月）
+      </h2>
       {data.length === 0 ? (
         <p className="text-slate-500">尚無月營收資料</p>
       ) : (
