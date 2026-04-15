@@ -9,7 +9,7 @@ GET /api/stocks/{symbol}/revenues?limit= → 月營收細端點
 from datetime import date as _date
 
 from fastapi import APIRouter, HTTPException, Query
-from sqlalchemy import desc, select
+from sqlalchemy import desc, or_, select
 from sqlalchemy.orm import Session
 
 from alpha_lab.schemas.stock import (
@@ -167,6 +167,27 @@ def _load_events(session: Session, symbol: str, limit: int) -> list[EventPoint]:
         )
         for r in rows  # 事件刻意維持新到舊（UI 以時間軸顯示最新消息在上）
     ]
+
+
+@router.get("/stocks", response_model=list[StockMeta])
+async def list_stocks(
+    q: str | None = Query(None, description="查詢代號或名稱（部分字串）"),
+    limit: int = Query(50, ge=1, le=500),
+) -> list[StockMeta]:
+    with session_scope() as session:
+        stmt = select(Stock)
+        if q:
+            like = f"%{q}%"
+            stmt = stmt.where(or_(Stock.symbol.like(like), Stock.name.like(like)))
+        stmt = stmt.order_by(Stock.symbol).limit(limit)
+        rows = session.execute(stmt).scalars().all()
+        return [
+            StockMeta(
+                symbol=r.symbol, name=r.name,
+                industry=r.industry, listed_date=r.listed_date,
+            )
+            for r in rows
+        ]
 
 
 @router.get("/stocks/{symbol}/overview", response_model=StockOverview)
