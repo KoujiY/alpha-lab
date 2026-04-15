@@ -15,6 +15,7 @@ class Holding(BaseModel):
     name: str
     weight: float = Field(..., ge=0.0, le=1.0)
     score_breakdown: FactorBreakdown
+    reasons: list[str] = Field(default_factory=list)
 
 
 class Portfolio(BaseModel):

@@ -119,6 +119,7 @@ export interface Holding {
   name: string;
   weight: number;
   score_breakdown: FactorBreakdown;
+  reasons: string[];
 }
 
 export interface Portfolio {
