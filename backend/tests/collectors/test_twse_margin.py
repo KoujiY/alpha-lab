@@ -1,4 +1,9 @@
-"""TWSE 融資融券 collector 單元測試。"""
+"""TWSE 融資融券 collector 單元測試。
+
+Mock payload 反映真實 TWSE MI_MARGN（2025 年版）：
+- `tables[0]` 為整體買賣總計（summary）
+- `tables[1]` 為個股信用交易彙總，有 `groups` 與 `fields`，融資/融券兩群組
+"""
 
 from datetime import date
 
@@ -9,27 +14,58 @@ import respx
 from alpha_lab.collectors.twse_margin import fetch_margin_trades
 from alpha_lab.schemas.margin import MarginTrade
 
+# 真實結構：融資 group 佔 2..7、融券 group 佔 8..13、資券互抵/註記在尾端。
+# 融資與融券子欄位名稱相同（買進/賣出/現金(券)償還/前日餘額/今日餘額/可用額度）。
 SAMPLE_FIELDS = [
-    "股票代號", "股票名稱",
-    "融資買進", "融資賣出", "現金償還", "融資前日餘額", "融資今日餘額", "融資限額", "融資使用率(%)",
-    "融券買進", "融券賣出", "現券償還", "融券前日餘額", "融券今日餘額", "融券限額", "融券使用率(%)",
+    "代號", "名稱",
+    # 融資群組 (index 2..7)
+    "買進", "賣出", "現金(券)償還", "前日餘額", "今日餘額", "可用額度",
+    # 融券群組 (index 8..13)
+    "買進", "賣出", "現金(券)償還", "前日餘額", "今日餘額", "可用額度",
     "資券互抵", "註記",
 ]
+
+# 真實 TWSE groups 不含 `start`，靠 span 累加推導；前面會有股票識別群組。
+SAMPLE_GROUPS = [
+    {"title": "股票", "span": 2},
+    {"title": "融資", "span": 6},
+    {"title": "融券", "span": 6},
+    {"title": "", "span": 1},
+    {"title": "", "span": 1},
+]
+
+SUMMARY_TABLE = {
+    "title": "信用交易總計",
+    "fields": ["項目", "買進", "賣出", "現金(券)償還", "前日餘額", "今日餘額"],
+    "data": [["融資(交易單位)", "1,000", "800", "0", "20,000", "20,200"]],
+}
+
+
+def _credit_table(data: list[list[str]]) -> dict[str, object]:
+    return {
+        "title": "信用交易彙總",
+        "groups": SAMPLE_GROUPS,
+        "fields": SAMPLE_FIELDS,
+        "data": data,
+    }
+
 
 SAMPLE_RESPONSE = {
     "stat": "OK",
     "tables": [
-        {
-            "fields": SAMPLE_FIELDS,
-            "data": [
+        SUMMARY_TABLE,
+        _credit_table(
+            [
                 [
                     "2330", "台積電",
-                    "500", "400", "0", "10100", "10200", "999999", "0.5",
-                    "30", "50", "0", "220", "200", "99999", "0.1",
+                    # 融資：買進=500、賣出=400、現金償還=0、前日=10,100、今日=10,200、限額
+                    "500", "400", "0", "10,100", "10,200", "999,999",
+                    # 融券：買進(回補)=30、賣出=50、現券償還=0、前日=220、今日=200、限額
+                    "30", "50", "0", "220", "200", "99,999",
                     "0", "",
                 ],
-            ],
-        }
+            ]
+        ),
     ],
 }
 
@@ -59,13 +95,13 @@ async def test_fetch_margin_trades_filters_symbols() -> None:
     payload = {
         "stat": "OK",
         "tables": [
-            {
-                "fields": SAMPLE_FIELDS,
-                "data": [
-                    ["2330", "台積電"] + ["0"] * 16,
-                    ["2317", "鴻海"] + ["0"] * 16,
-                ],
-            }
+            SUMMARY_TABLE,
+            _credit_table(
+                [
+                    ["2330", "台積電"] + ["0"] * 12 + ["0", ""],
+                    ["2317", "鴻海"] + ["0"] * 12 + ["0", ""],
+                ]
+            ),
         ],
     }
     with respx.mock(base_url="https://www.twse.com.tw") as mock:
