@@ -172,3 +172,23 @@ class FinancialStatement(Base):
     financing_cf: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     raw_json_text: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
+
+
+class Score(Base):
+    """多因子評分（Phase 3）。
+
+    每個因子 0-100 分，total_score 為加權平均（權重隨風格調整時在 runtime 算）。
+    本表儲存四個因子的「中性」分數；組合推薦時讀取並按風格權重加權。
+    """
+
+    __tablename__ = "scores"
+
+    symbol: Mapped[str] = mapped_column(
+        String(10), ForeignKey("stocks.symbol"), primary_key=True
+    )
+    calc_date: Mapped[date] = mapped_column(Date, primary_key=True)
+    value_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    growth_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    dividend_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    quality_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    total_score: Mapped[float | None] = mapped_column(Float, nullable=True)
