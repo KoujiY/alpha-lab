@@ -23,7 +23,6 @@ from alpha_lab.storage.models import (
     PriceDaily,
     RevenueMonthly,
     Score,
-    Stock,
 )
 
 
@@ -50,7 +49,13 @@ def build_snapshot(session: Session, calc_date: date) -> Snapshot:
     - debt_ratio = total_liabilities / total_assets
     """
 
-    symbols = [row[0] for row in session.execute(select(Stock.symbol)).all()]
+    # 只評分有財報的 symbol（濾掉 ETF / 權證等無基本面資料的標的）
+    symbols = [
+        row[0]
+        for row in session.execute(
+            select(FinancialStatement.symbol).distinct()
+        ).all()
+    ]
     value: dict[str, dict[str, float | None]] = {}
     growth: dict[str, dict[str, float | None]] = {}
     dividend: dict[str, float | None] = {}
@@ -190,17 +195,21 @@ def score_all(session: Session, calc_date: date) -> int:
     if not rows:
         return 0
 
-    stmt = sqlite_insert(Score).values(rows)
-    stmt = stmt.on_conflict_do_update(
-        index_elements=["symbol", "calc_date"],
-        set_={
-            "value_score": stmt.excluded.value_score,
-            "growth_score": stmt.excluded.growth_score,
-            "dividend_score": stmt.excluded.dividend_score,
-            "quality_score": stmt.excluded.quality_score,
-            "total_score": stmt.excluded.total_score,
-        },
-    )
-    session.execute(stmt)
+    # SQLite SQLITE_MAX_VARIABLE_NUMBER 預設 32766；每列 7 參數 → 批次 4000 列安全
+    batch_size = 4000
+    for start in range(0, len(rows), batch_size):
+        batch = rows[start : start + batch_size]
+        stmt = sqlite_insert(Score).values(batch)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=["symbol", "calc_date"],
+            set_={
+                "value_score": stmt.excluded.value_score,
+                "growth_score": stmt.excluded.growth_score,
+                "dividend_score": stmt.excluded.dividend_score,
+                "quality_score": stmt.excluded.quality_score,
+                "total_score": stmt.excluded.total_score,
+            },
+        )
+        session.execute(stmt)
     session.commit()
     return len(rows)
