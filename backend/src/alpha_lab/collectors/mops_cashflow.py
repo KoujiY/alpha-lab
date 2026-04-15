@@ -16,9 +16,11 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+import ssl
 from typing import TypedDict
 
 import httpx
+import truststore
 from bs4 import BeautifulSoup, Tag
 from sqlalchemy.orm import Session
 
@@ -113,6 +115,11 @@ def parse_cashflow_html(html: str) -> Cashflow:
     return result
 
 
+def _build_ssl_context() -> ssl.SSLContext:
+    """使用系統信任憑證庫，避免 Windows 環境 certifi 缺 SKID 導致驗證失敗。"""
+    return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+
+
 def _browser_headers() -> dict[str, str]:
     """MOPS WAF 對 UA 敏感；使用瀏覽器級 headers 提高成功率。"""
     return {
@@ -141,7 +148,7 @@ async def fetch_cashflow(
         TWSERateLimitError: MOPS WAF 擋下請求時。
     """
     owns_client = client is None
-    c = client or httpx.AsyncClient(timeout=30.0)
+    c = client or httpx.AsyncClient(timeout=30.0, verify=_build_ssl_context())
     try:
         resp = await c.post(
             MOPS_URL,
