@@ -1,7 +1,7 @@
 ---
 domain: architecture
 updated: 2026-04-15
-related: [data-models.md, ../collectors/twse.md, ../collectors/mops.md, ../collectors/events.md]
+related: [data-models.md, ../collectors/twse.md, ../collectors/mops.md, ../collectors/mops-cashflow.md, ../collectors/events.md, ../domain/scoring.md, ../features/portfolio/recommender.md]
 ---
 
 # 資料流
@@ -43,7 +43,9 @@ API 輪詢 / CLI 印出結果
 | `twse_institutional` | `fetch_institutional_trades` | `institutional_trades` |
 | `twse_margin` | `fetch_margin_trades` | `margin_trades` |
 | `mops_events` | `fetch_latest_events` | `events` |
-| `mops_financials` | `fetch_income_statement` / `fetch_balance_sheet`（cashflow 延至 Phase 3） | `financial_statements` |
+| `mops_financials` | `fetch_income_statement` / `fetch_balance_sheet` | `financial_statements` |
+| `mops_cashflow` | `fetch_cashflow`（Phase 3） | `financial_statements`（statement_type='cashflow'） |
+| `score` | `score_all`（Phase 3） | `scores` |
 
 ### Session 管理原則
 
@@ -107,3 +109,24 @@ SQLite (prices_daily, revenues_monthly, financial_statements, institutional_trad
 Glossary 走獨立管線（YAML → loader → API → useGlossary → TermTooltip），無 SQLite 參與。
 
 詳見 [features/data-panel/overview.md](../features/data-panel/overview.md) 與 [features/education/tooltip.md](../features/education/tooltip.md)。
+
+## Phase 3 新增：評分與組合推薦
+
+```
+SQLite (prices_daily, revenues_monthly, financial_statements)
+  → analysis/pipeline.py::build_snapshot（每 symbol 聚合出四因子原始指標）
+    → analysis/normalize.py（橫截面百分位）
+      → analysis/factor_*.py（0-100 分）
+        → analysis/weights.py::weighted_total（balanced 權重 → total_score）
+          → scores 表（upsert，每日 snapshot）
+
+scores
+  → api/routes/stocks.py::GET /api/stocks/{symbol}/score  → frontend ScoreRadar
+  → api/routes/portfolios.py::POST /api/portfolios/recommend
+      → analysis/portfolio.py::generate_portfolio（runtime 套風格權重、產業分散、softmax 權重）
+        → frontend PortfoliosPage / PortfolioTabs
+```
+
+觸發：`POST /api/jobs/collect` with `job_type='score'` 或 CLI `scripts/compute_scores.py`。
+
+詳見 [domain/scoring.md](../domain/scoring.md) 與 [features/portfolio/recommender.md](../features/portfolio/recommender.md)。

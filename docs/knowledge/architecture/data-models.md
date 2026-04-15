@@ -1,7 +1,7 @@
 ---
 domain: architecture
 updated: 2026-04-15
-related: [data-flow.md, ../collectors/twse.md, ../collectors/mops.md, ../collectors/events.md]
+related: [data-flow.md, ../collectors/twse.md, ../collectors/mops.md, ../collectors/mops-cashflow.md, ../collectors/events.md, ../domain/scoring.md]
 ---
 
 # 資料模型
@@ -23,7 +23,8 @@ related: [data-flow.md, ../collectors/twse.md, ../collectors/mops.md, ../collect
 | `institutional_trades` | (symbol, trade_date) | TWSE T86 | 1.5 |
 | `margin_trades` | (symbol, trade_date) | TWSE MI_MARGN | 1.5 |
 | `events` | id (autoincrement) | TWSE OpenAPI t187ap04_L | 1.5 |
-| `financial_statements` | (symbol, period, statement_type) | TWSE OpenAPI t187ap06/07_L_ci（income + balance 已完成；**cashflow 延至 Phase 3**） | 1.5 |
+| `financial_statements` | (symbol, period, statement_type) | TWSE OpenAPI t187ap06/07_L_ci（income + balance）；cashflow 採 MOPS t164sb05 HTML scrape | 1.5 / 3 |
+| `scores` | (symbol, calc_date) | `compute_scores` pipeline 產出 | 3 |
 
 ### Pydantic Schemas
 
@@ -58,4 +59,5 @@ related: [data-flow.md, ../collectors/twse.md, ../collectors/mops.md, ../collect
 - 新增欄位：nullable 可直接加；既存 DB 會 no-op，需 drop 或手動 ALTER
 - 主鍵選擇：時間序列用 composite；事件/任務類（`jobs`、`events`）用 autoincrement
 - `financial_statements` 增加新表類型時：擴充 `StatementType` enum + 對應 nullable 欄位 + runner fields dict
-- Phase 3 加入 cashflow 時（FCF 評分需要）：來源將改用 MOPS `t164sb05` HTML scrape（不走 OpenAPI），需新模組處理 HTML 解析
+- Phase 3 已加入 cashflow（FCF 評分需要）：來源 MOPS `t164sb05` HTML scrape，見 `collectors/mops-cashflow.md`
+- `scores` 表只存當日快照；多次 upsert 同日會覆寫 row，歷史分數不保留
