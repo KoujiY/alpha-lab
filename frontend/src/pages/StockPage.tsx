@@ -1,5 +1,7 @@
 import { useParams } from "react-router-dom";
 
+import { KeyMetrics } from "@/components/stock/KeyMetrics";
+import { PriceChart } from "@/components/stock/PriceChart";
 import { StockHeader } from "@/components/stock/StockHeader";
 import { useStockOverview } from "@/hooks/useStockOverview";
 
@@ -22,13 +24,13 @@ export function StockPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto space-y-8">
       <StockHeader meta={data.meta} />
-      {/* section 元件將於 Task F2-F4 插入此區 */}
-      <p className="text-slate-500 text-sm">
-        共 {data.prices.length} 筆股價、{data.revenues.length} 筆月營收、
-        {data.financials.length} 季財報。
-      </p>
+      <PriceChart points={data.prices} />
+      <KeyMetrics
+        latestPrice={data.prices[data.prices.length - 1]}
+        latestFinancial={data.financials[data.financials.length - 1]}
+      />
     </div>
   );
 }
