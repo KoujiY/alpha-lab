@@ -1,7 +1,10 @@
 import { useParams } from "react-router-dom";
 
+import { EventsSection } from "@/components/stock/EventsSection";
 import { FinancialsSection } from "@/components/stock/FinancialsSection";
+import { InstitutionalSection } from "@/components/stock/InstitutionalSection";
 import { KeyMetrics } from "@/components/stock/KeyMetrics";
+import { MarginSection } from "@/components/stock/MarginSection";
 import { PriceChart } from "@/components/stock/PriceChart";
 import { RevenueSection } from "@/components/stock/RevenueSection";
 import { StockHeader } from "@/components/stock/StockHeader";
@@ -35,6 +38,9 @@ export function StockPage() {
       />
       <RevenueSection points={data.revenues} />
       <FinancialsSection points={data.financials} />
+      <InstitutionalSection points={data.institutional} />
+      <MarginSection points={data.margin} />
+      <EventsSection events={data.events} />
     </div>
   );
 }
