@@ -464,7 +464,7 @@ GET /api/glossary/K線
 | 1 | ✅ 完成（2026-04-15） | 數據抓取（最小管線） | SQLAlchemy + SQLite 基礎建設、TWSE 日股價 collector、MOPS 月營收 collector、`POST /api/jobs/collect`、`GET /api/jobs/status/{id}` |
 | 1.5 | ✅ 完成（2026-04-15） | 數據抓取擴充 | 三大法人、融資融券、季報（合併損益/資產負債）、重大訊息 collectors[^phase15-cashflow] |
 | 2 | ✅ 完成（2026-04-15） | 功能 A | 個股頁、術語 Tooltip 基礎、術語庫 v1 |
-| 3 | 未開始 | 功能 C | 多因子評分引擎、組合推薦頁面 |
+| 3 | ✅ 完成（2026-04-16） | 功能 C | 多因子評分引擎（Value/Growth/Dividend/Quality）、MOPS 現金流 collector（FCF）、組合推薦 API、`/portfolios` 頁面與個股頁雷達圖 |
 | 4 | 未開始 | 功能 E | 推薦理由、L2 詳解面板、報告儲存、回顧模式 |
 | 5 | 未開始 | 功能 B | 選股篩選器 |
 | 6 | 未開始 | 功能 D | 組合追蹤、績效計算 |
@@ -490,7 +490,7 @@ GET /api/glossary/K線
 **Phase 轉換流程：**
 1. 當前 Phase 所有 Task 完成
 2. 使用者手動驗收通過並明確確認「Phase N 驗證通過」
-3. Commit Phase 最終狀態（可選打 tag）
+3. Commit Phase 最終狀態
 4. 等使用者明確指示「開始 Phase N+1」
 5. 呼叫 `writing-plans` skill 撰寫下一 Phase 的實作計畫
 6. 使用者審視計畫並確認後，進入實作

@@ -67,7 +67,7 @@ cd frontend && pnpm e2e
 
 1. 當前 Phase 全部 Task 完成且靜態檢查通過
 2. 使用者手動驗收並回報「Phase N 驗證通過」
-3. 執行該 Phase 最終 commit（可選 `git tag -a phase-N-complete`）
+3. 執行該 Phase 最終 commit
 4. **停下來等使用者指示**（可能當下開始下一 Phase，也可能隔天或換 session 才繼續）
 5. 收到「開始 Phase N+1」指示後，使用 `superpowers:writing-plans` skill 撰寫下一 Phase 計畫
 6. 使用者審視計畫後才進入實作
