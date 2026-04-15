@@ -85,3 +85,19 @@ API 輪詢 / CLI 印出結果
 - 改 job 執行模型（例如要併發）：
   - 現在是 FastAPI BackgroundTasks（單程序），改 Celery/RQ 需同步改 `service.run_job_sync` 入口與 session factory 傳遞
 - 排程：目前無 APScheduler / cron 整合；Phase 2+ 再評估
+
+## Phase 2 新增：讀取面
+
+Phase 2 導入**讀取面 API 層**：
+
+```
+SQLite (prices_daily, revenues_monthly, financial_statements, institutional_trades, margin_trades, events, stocks)
+  → api/routes/stocks.py::_load_* helpers
+    → api/routes/stocks.py::get_stock_overview（聚合）/ get_stock_{section}（細端點）
+      → frontend hooks/useStockOverview.ts
+        → pages/StockPage.tsx → components/stock/*
+```
+
+Glossary 走獨立管線（YAML → loader → API → useGlossary → TermTooltip），無 SQLite 參與。
+
+詳見 [features/data-panel/overview.md](../features/data-panel/overview.md) 與 [features/education/tooltip.md](../features/education/tooltip.md)。
