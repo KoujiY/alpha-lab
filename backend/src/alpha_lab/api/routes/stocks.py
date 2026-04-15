@@ -16,6 +16,7 @@ from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import desc, or_, select
 from sqlalchemy.orm import Session
 
+from alpha_lab.schemas.score import FactorBreakdown, ScoreResponse
 from alpha_lab.schemas.stock import (
     DailyPricePoint,
     EventPoint,
@@ -34,6 +35,7 @@ from alpha_lab.storage.models import (
     MarginTrade,
     PriceDaily,
     RevenueMonthly,
+    Score,
     Stock,
 )
 
@@ -280,6 +282,31 @@ async def get_stock_margin(
     with session_scope() as session:
         _get_stock_or_404(session, symbol)
         return _load_margin(session, symbol, limit)
+
+
+@router.get("/stocks/{symbol}/score", response_model=ScoreResponse)
+async def get_stock_score(symbol: str) -> ScoreResponse:
+    with session_scope() as session:
+        row = session.execute(
+            select(Score)
+            .where(Score.symbol == symbol)
+            .order_by(desc(Score.calc_date))
+            .limit(1)
+        ).scalar_one_or_none()
+        if row is None:
+            return ScoreResponse(symbol=symbol, latest=None)
+        return ScoreResponse(
+            symbol=symbol,
+            latest=FactorBreakdown(
+                symbol=row.symbol,
+                calc_date=row.calc_date,
+                value_score=row.value_score,
+                growth_score=row.growth_score,
+                dividend_score=row.dividend_score,
+                quality_score=row.quality_score,
+                total_score=row.total_score,
+            ),
+        )
 
 
 @router.get("/stocks/{symbol}/events", response_model=list[EventPoint])
