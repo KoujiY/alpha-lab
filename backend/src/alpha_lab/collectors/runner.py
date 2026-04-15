@@ -4,9 +4,15 @@ Stock 主資料採「若不存在就建立 placeholder」策略（name 用 symbo
 正式的公司基本資料同步未在 Phase 1 範圍內。
 """
 
+import json
+
 from sqlalchemy.orm import Session
 
 from alpha_lab.schemas.event import Event as EventSchema
+from alpha_lab.schemas.financial_statement import (
+    FinancialStatement as FinancialStatementSchema,
+)
+from alpha_lab.schemas.financial_statement import StatementType
 from alpha_lab.schemas.institutional import (
     InstitutionalTrade as InstitutionalTradeSchema,
 )
@@ -14,6 +20,9 @@ from alpha_lab.schemas.margin import MarginTrade as MarginTradeSchema
 from alpha_lab.schemas.price import DailyPrice
 from alpha_lab.schemas.revenue import MonthlyRevenue
 from alpha_lab.storage.models import Event as EventRow
+from alpha_lab.storage.models import (
+    FinancialStatement as FinancialStatementRow,
+)
 from alpha_lab.storage.models import (
     InstitutionalTrade as InstitutionalTradeRow,
 )
@@ -186,3 +195,57 @@ def upsert_events(session: Session, rows: list[EventSchema]) -> int:
             )
             inserted += 1
     return inserted
+
+
+def upsert_financial_statements(
+    session: Session, rows: list[FinancialStatementSchema]
+) -> int:
+    """upsert 季報（三表共用 wide model）。回傳寫入筆數（新增 + 更新）。
+
+    主鍵 `(symbol, period, statement_type)`；既存同一筆會覆寫所有欄位（含
+    `raw_json_text`）。不同 `statement_type` 只會填自己那組欄位，其他欄位
+    保持 None。
+    """
+    count = 0
+    for row in rows:
+        _ensure_stock(session, row.symbol)
+        statement_type_value = (
+            row.statement_type.value
+            if isinstance(row.statement_type, StatementType)
+            else str(row.statement_type)
+        )
+        pk = {
+            "symbol": row.symbol,
+            "period": row.period,
+            "statement_type": statement_type_value,
+        }
+        existing = session.get(FinancialStatementRow, pk)
+        raw_text = json.dumps(row.raw_json, ensure_ascii=False)
+        fields = {
+            "revenue": row.revenue,
+            "gross_profit": row.gross_profit,
+            "operating_income": row.operating_income,
+            "net_income": row.net_income,
+            "eps": row.eps,
+            "total_assets": row.total_assets,
+            "total_liabilities": row.total_liabilities,
+            "total_equity": row.total_equity,
+            "operating_cf": row.operating_cf,
+            "investing_cf": row.investing_cf,
+            "financing_cf": row.financing_cf,
+            "raw_json_text": raw_text,
+        }
+        if existing is None:
+            session.add(
+                FinancialStatementRow(
+                    symbol=row.symbol,
+                    period=row.period,
+                    statement_type=statement_type_value,
+                    **fields,
+                )
+            )
+        else:
+            for k, v in fields.items():
+                setattr(existing, k, v)
+        count += 1
+    return count
