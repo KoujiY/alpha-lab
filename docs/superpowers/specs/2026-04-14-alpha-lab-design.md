@@ -463,7 +463,7 @@ GET /api/glossary/K線
 | 0 | ✅ 完成（2026-04-15） | 基礎建設 | Repo 結構、FastAPI/React hello world、健康檢查串接、CLAUDE.md、USER_GUIDE.md v0、知識庫骨架 |
 | 1 | ✅ 完成（2026-04-15） | 數據抓取（最小管線） | SQLAlchemy + SQLite 基礎建設、TWSE 日股價 collector、MOPS 月營收 collector、`POST /api/jobs/collect`、`GET /api/jobs/status/{id}` |
 | 1.5 | ✅ 完成（2026-04-15） | 數據抓取擴充 | 三大法人、融資融券、季報（合併損益/資產負債）、重大訊息 collectors[^phase15-cashflow] |
-| 2 | 未開始 | 功能 A | 個股頁、術語 Tooltip 基礎、術語庫 v1 |
+| 2 | ✅ 完成（2026-04-15） | 功能 A | 個股頁、術語 Tooltip 基礎、術語庫 v1 |
 | 3 | 未開始 | 功能 C | 多因子評分引擎、組合推薦頁面 |
 | 4 | 未開始 | 功能 E | 推薦理由、L2 詳解面板、報告儲存、回顧模式 |
 | 5 | 未開始 | 功能 B | 選股篩選器 |

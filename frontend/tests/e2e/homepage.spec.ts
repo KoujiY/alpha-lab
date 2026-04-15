@@ -17,7 +17,7 @@ test.describe("Homepage", () => {
 
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "alpha-lab" })).toBeVisible();
-    await expect(page.getByText("Phase 0 骨架運作中")).toBeVisible();
+    await expect(page.getByText(/在右上角搜尋框輸入股票代號/)).toBeVisible();
   });
 
   test("後端連線成功時顯示綠色狀態", async ({ page }) => {
