@@ -17,13 +17,18 @@ interface PriceChartProps {
 export function PriceChart({ points }: PriceChartProps) {
   if (points.length === 0) {
     return (
-      <div className="h-64 flex items-center justify-center text-slate-500">
-        尚無股價資料
-      </div>
+      <section aria-label="股價走勢">
+        <h2 className="text-xl font-semibold mb-3">股價走勢</h2>
+        <div className="h-64 flex items-center justify-center text-slate-500">
+          尚無股價資料
+        </div>
+      </section>
     );
   }
   return (
-    <div className="h-64">
+    <section aria-label="股價走勢">
+      <h2 className="text-xl font-semibold mb-3">股價走勢</h2>
+      <div className="h-64">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={points}>
           <CartesianGrid stroke="#1e293b" />
@@ -41,6 +46,7 @@ export function PriceChart({ points }: PriceChartProps) {
           />
         </LineChart>
       </ResponsiveContainer>
-    </div>
+      </div>
+    </section>
   );
 }

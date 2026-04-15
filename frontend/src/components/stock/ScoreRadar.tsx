@@ -25,24 +25,29 @@ export function ScoreRadar({ breakdown }: ScoreRadarProps) {
     breakdown.total_score !== null ? breakdown.total_score.toFixed(1) : "—";
 
   return (
-    <div className="rounded-lg border p-4">
-      <div className="mb-2 flex items-center justify-between">
-        <h3 className="font-semibold">多因子評分</h3>
-        <span className="text-sm text-gray-600">總分 {totalLabel}</span>
+    <section aria-label="多因子評分" className="flex h-full flex-col">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-xl font-semibold">多因子評分</h2>
+        <span className="text-sm text-slate-400">總分 {totalLabel}</span>
       </div>
-      <ResponsiveContainer width="100%" height={240}>
-        <RadarChart data={data}>
-          <PolarGrid />
-          <PolarAngleAxis dataKey="factor" />
-          <PolarRadiusAxis domain={[0, 100]} tick={false} />
-          <Radar
-            dataKey="score"
-            stroke="#2563eb"
-            fill="#3b82f6"
-            fillOpacity={0.3}
-          />
-        </RadarChart>
-      </ResponsiveContainer>
-    </div>
+      <div className="flex-1 rounded border border-slate-800 bg-slate-900 p-3">
+        <ResponsiveContainer width="100%" height={160}>
+          <RadarChart data={data}>
+            <PolarGrid stroke="#334155" />
+            <PolarAngleAxis
+              dataKey="factor"
+              tick={{ fill: "#cbd5e1", fontSize: 12 }}
+            />
+            <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
+            <Radar
+              dataKey="score"
+              stroke="#60a5fa"
+              fill="#3b82f6"
+              fillOpacity={0.4}
+            />
+          </RadarChart>
+        </ResponsiveContainer>
+      </div>
+    </section>
   );
 }
