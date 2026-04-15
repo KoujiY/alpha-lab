@@ -26,7 +26,7 @@ export function RevenueSection({ points }: RevenueSectionProps) {
       {data.length === 0 ? (
         <p className="text-slate-500">尚無月營收資料</p>
       ) : (
-        <div className="h-56">
+        <div className="h-40">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data}>
               <CartesianGrid stroke="#1e293b" />

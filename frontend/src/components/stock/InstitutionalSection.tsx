@@ -33,7 +33,7 @@ export function InstitutionalSection({ points }: InstitutionalSectionProps) {
   return (
     <section aria-label="三大法人">
       <h2 className="text-xl font-semibold mb-3">三大法人買賣超（近 20 日，單位：張）</h2>
-      <div className="h-56">
+      <div className="h-40">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data}>
             <CartesianGrid stroke="#1e293b" />

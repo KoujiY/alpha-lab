@@ -29,18 +29,26 @@ export function StockPage() {
   }
 
   return (
-    <div className="w-full space-y-8">
+    <div className="w-full space-y-4">
       <StockHeader meta={data.meta} />
-      <PriceChart points={data.prices} />
       <KeyMetrics
         latestPrice={data.prices[data.prices.length - 1]}
         latestFinancial={data.financials[data.financials.length - 1]}
       />
-      <RevenueSection points={data.revenues} />
-      <FinancialsSection points={data.financials} />
-      <InstitutionalSection points={data.institutional} />
-      <MarginSection points={data.margin} />
-      <EventsSection events={data.events} />
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <div className="lg:col-span-3 space-y-4">
+          <PriceChart points={data.prices} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <RevenueSection points={data.revenues} />
+            <InstitutionalSection points={data.institutional} />
+          </div>
+          <FinancialsSection points={data.financials} />
+        </div>
+        <aside className="space-y-4 lg:max-h-[calc(100vh-12rem)] lg:overflow-y-auto lg:pr-1">
+          <MarginSection points={data.margin} />
+          <EventsSection events={data.events} />
+        </aside>
+      </div>
     </div>
   );
 }

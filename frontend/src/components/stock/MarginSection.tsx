@@ -17,7 +17,7 @@ export function MarginSection({ points }: MarginSectionProps) {
   return (
     <section aria-label="融資融券">
       <h2 className="text-xl font-semibold mb-3">融資融券（最新一日）</h2>
-      <dl className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+      <dl className="grid grid-cols-2 gap-2 text-sm">
         <Stat label="融資餘額" value={latest.margin_balance} />
         <Stat label="融資買進" value={latest.margin_buy} />
         <Stat label="融資賣出" value={latest.margin_sell} />
@@ -32,9 +32,9 @@ export function MarginSection({ points }: MarginSectionProps) {
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="bg-slate-900 rounded p-3 border border-slate-800">
-      <dt className="text-xs text-slate-500">{label}</dt>
-      <dd className="text-lg font-semibold mt-1">{value.toLocaleString("zh-TW")}</dd>
+    <div className="bg-slate-900 rounded p-2 border border-slate-800">
+      <dt className="text-[11px] text-slate-500">{label}</dt>
+      <dd className="text-base font-semibold mt-0.5">{value.toLocaleString("zh-TW")}</dd>
     </div>
   );
 }
