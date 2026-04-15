@@ -3590,7 +3590,7 @@ git commit -m "docs: sync knowledge base for phase 1.5 collectors"
 
 ## Task H1: Phase 1.5 全面驗收 + 最終 commit
 
-- [ ] **Step 1: Backend 靜態檢查**
+- [x] **Step 1: Backend 靜態檢查**
 
 ```bash
 cd backend
@@ -3600,7 +3600,7 @@ cd backend
 
 預期：兩者 0 error。
 
-- [ ] **Step 2: Backend 全部測試**
+- [x] **Step 2: Backend 全部測試**
 
 ```bash
 cd backend
@@ -3680,7 +3680,7 @@ pnpm e2e
 >    .venv/Scripts/python.exe scripts/daily_collect.py --date 2026-04-11 --symbols 2330,2317
 >    ```
 
-- [ ] **Step 5: 亂碼掃描**
+- [x] **Step 5: 亂碼掃描**
 
 ```bash
 cd /g/codingdata/alpha-lab
@@ -3689,7 +3689,7 @@ grep -r "��" backend/src backend/tests backend/scripts docs/knowledge docs/U
 
 預期：`clean`。
 
-- [ ] **Step 6: 更新 spec 標註 Phase 1.5 完成**
+- [x] **Step 6: 更新 spec 標註 Phase 1.5 完成**
 
 修改 `docs/superpowers/specs/2026-04-14-alpha-lab-design.md` §15 表格：
 - Phase 1.5「狀態」欄改為 `✅ 完成（YYYY-MM-DD）`（當日日期）

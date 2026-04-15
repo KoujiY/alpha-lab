@@ -462,7 +462,7 @@ GET /api/glossary/K線
 |-------|------|------|--------|
 | 0 | ✅ 完成（2026-04-15） | 基礎建設 | Repo 結構、FastAPI/React hello world、健康檢查串接、CLAUDE.md、USER_GUIDE.md v0、知識庫骨架 |
 | 1 | ✅ 完成（2026-04-15） | 數據抓取（最小管線） | SQLAlchemy + SQLite 基礎建設、TWSE 日股價 collector、MOPS 月營收 collector、`POST /api/jobs/collect`、`GET /api/jobs/status/{id}` |
-| 1.5 | 未開始 | 數據抓取擴充 | 三大法人、融資融券、季報（合併損益/資產負債/現金流）、重大訊息 collectors |
+| 1.5 | ✅ 完成（2026-04-15） | 數據抓取擴充 | 三大法人、融資融券、季報（合併損益/資產負債）、重大訊息 collectors[^phase15-cashflow] |
 | 2 | 未開始 | 功能 A | 個股頁、術語 Tooltip 基礎、術語庫 v1 |
 | 3 | 未開始 | 功能 C | 多因子評分引擎、組合推薦頁面 |
 | 4 | 未開始 | 功能 E | 推薦理由、L2 詳解面板、報告儲存、回顧模式 |
@@ -473,6 +473,8 @@ GET /api/glossary/K線
 **Phase 1 vs 1.5 切分理由**：Phase 1 先打通「抓取 → 落庫 → API 觸發」的核心管線，驗證 job 系統與資料流設計正確；季報、事件等複雜度高的 collector 放 Phase 1.5。schema 一次定義完整（Phase 1 建表涵蓋 1.5 的欄位），避免之後重構。
 
 **Phase 2 依賴**：Phase 1 + 1.5 都完成後才啟動，確保個股頁可以一次完整呈現（股價、月營收、季報、事件）。
+
+[^phase15-cashflow]: **現金流量表延後到 Phase 2**：TWSE OpenAPI 沒有現金流 endpoint，原 Phase 1.5 計畫走 MOPS t164sb05 HTML 爬蟲，但該來源解析複雜且 Phase 1.5 尚無下游消費者。決定延後到 Phase 2 實作 FCF 相關評分因子時，再一併補 MOPS t164sb05 HTML scrape。`financial_statements` 表 schema 已預留 `statement_type='cashflow'`，collector 與 upsert 皆可直接擴充。
 
 ### 分階段規劃原則（MANDATORY）
 
