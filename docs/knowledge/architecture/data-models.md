@@ -1,7 +1,7 @@
 ---
 domain: architecture
 updated: 2026-04-15
-related: [data-flow.md, ../collectors/twse.md, ../collectors/mops.md]
+related: [data-flow.md, ../collectors/twse.md, ../collectors/mops.md, ../collectors/events.md]
 ---
 
 # 資料模型
@@ -10,33 +10,41 @@ related: [data-flow.md, ../collectors/twse.md, ../collectors/mops.md]
 
 記錄 SQLAlchemy models 與 Pydantic schemas 的總覽，供 Claude 修改資料結構時參考。
 
-## 現行實作（Phase 1）
+## 現行實作（Phase 1.5 完成）
 
 ### SQLAlchemy Models（`backend/src/alpha_lab/storage/models.py`）
 
 | Table | 主鍵 | 來源 | Phase |
 |-------|------|------|-------|
-| `stocks` | symbol | 手動/collector 隱性建立 | 1 |
+| `stocks` | symbol | collector 隱性建立 | 1 |
 | `prices_daily` | (symbol, trade_date) | TWSE STOCK_DAY | 1 |
 | `revenues_monthly` | (symbol, year, month) | MOPS t187ap05_L | 1 |
 | `jobs` | id (autoincrement) | API 觸發 | 1 |
-
-**Phase 1.5 規劃新增**：`financial_statements`、`institutional_trades`、`margin_trades`、`events`。
+| `institutional_trades` | (symbol, trade_date) | TWSE T86 | 1.5 |
+| `margin_trades` | (symbol, trade_date) | TWSE MI_MARGN | 1.5 |
+| `events` | id (autoincrement) | TWSE OpenAPI t187ap04_L | 1.5 |
+| `financial_statements` | (symbol, period, statement_type) | TWSE OpenAPI t187ap06/07_L_ci（income + balance 已完成；**cashflow 延至 Phase 2**） | 1.5 |
 
 ### Pydantic Schemas
 
 | 檔案 | 用途 |
 |------|------|
 | `schemas/health.py` | `/api/health` 回傳 |
-| `schemas/price.py` | `DailyPrice`（collector 輸出） |
-| `schemas/revenue.py` | `MonthlyRevenue`（collector 輸出） |
+| `schemas/price.py` | `DailyPrice` |
+| `schemas/revenue.py` | `MonthlyRevenue` |
+| `schemas/institutional.py` | `InstitutionalTrade` |
+| `schemas/margin.py` | `MarginTrade` |
+| `schemas/event.py` | `Event` |
+| `schemas/financial_statement.py` | `FinancialStatement` + `StatementType` enum |
 | `schemas/job.py` | Job API request/response |
 
 ### 設計原則
 
 - Collector 輸出 Pydantic 物件 → runner 負責 upsert 到 SQLAlchemy model
 - Pydantic schemas 是「API / collector 邊界」的合約；SQLAlchemy models 是「持久層」的實體
-- `Stock` 在 collector 隱性建立 placeholder（name=symbol）；正式公司資料同步在 Phase 1.5 或 2
+- `financial_statements` 採「寬表 + raw_json_text」策略：常用欄位獨立存放，原始完整欄位以 JSON 字串保留供未來擴充
+- `events` 主鍵為 autoincrement id（同公司同時刻可能多則），以 `(symbol, event_datetime, title)` 查重
+- `Stock` 在 collector 隱性建立 placeholder（name=symbol）；正式公司資料同步在 Phase 2+
 
 ## 關鍵檔案
 
@@ -46,6 +54,8 @@ related: [data-flow.md, ../collectors/twse.md, ../collectors/mops.md]
 
 ## 修改時注意事項
 
-- 新增 table：加到 `models.py`、用 `create_all` 自動建表；Phase 1.5 若要變更現有欄位，考慮引入 Alembic
-- 新增欄位：若是 nullable 可直接加，`create_all` 對既存表是 no-op，需 drop DB 或手動 ALTER
-- 主鍵選擇：時間序列（`prices_daily`、`revenues_monthly`）用 composite；事件/任務類（`jobs`）用 autoincrement
+- 新增 table：加到 `models.py`、用 `create_all` 自動建表；**Phase 2 若 schema 再有破壞性變動，應引入 Alembic**
+- 新增欄位：nullable 可直接加；既存 DB 會 no-op，需 drop 或手動 ALTER
+- 主鍵選擇：時間序列用 composite；事件/任務類（`jobs`、`events`）用 autoincrement
+- `financial_statements` 增加新表類型時：擴充 `StatementType` enum + 對應 nullable 欄位 + runner fields dict
+- Phase 2 加入 cashflow 時：來源將改用 MOPS `t164sb05` HTML scrape（不走 OpenAPI），需新模組處理 HTML 解析
