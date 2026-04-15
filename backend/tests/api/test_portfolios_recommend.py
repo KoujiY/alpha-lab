@@ -62,6 +62,11 @@ def test_recommend_all_styles() -> None:
     assert set(styles) == {"conservative", "balanced", "aggressive"}
     balanced = next(p for p in data["portfolios"] if p["style"] == "balanced")
     assert balanced["is_top_pick"] is True
+    # Phase 4：每檔 holding 至少帶一條理由
+    assert balanced["holdings"], "balanced 應至少有一檔"
+    for h in balanced["holdings"]:
+        assert isinstance(h["reasons"], list)
+        assert len(h["reasons"]) >= 1
 
 
 def test_recommend_single_style() -> None:

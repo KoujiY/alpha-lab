@@ -29,3 +29,9 @@ test("portfolios page switches tab and shows different holdings", async ({ page 
   await page.getByRole("button", { name: /保守組/ }).click();
   await expect(page.getByText("台積電")).toBeVisible();
 });
+
+test("portfolios page shows recommendation reasons on click", async ({ page }) => {
+  await page.goto("/portfolios");
+  await page.getByRole("button", { name: /查看理由/ }).first().click();
+  await expect(page.getByText(/平衡組配置偏好/)).toBeVisible();
+});
