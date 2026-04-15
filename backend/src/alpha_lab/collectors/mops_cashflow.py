@@ -20,8 +20,11 @@ from typing import TypedDict
 
 import httpx
 from bs4 import BeautifulSoup, Tag
+from sqlalchemy.orm import Session
 
 from alpha_lab.collectors._twse_common import TWSERateLimitError
+from alpha_lab.collectors.runner import upsert_financial_statements
+from alpha_lab.schemas.financial_statement import FinancialStatement, StatementType
 
 logger = logging.getLogger(__name__)
 
@@ -168,3 +171,29 @@ async def fetch_cashflow(
 
 def fetch_cashflow_sync(symbol: str, roc_year: int, season: int) -> Cashflow:
     return asyncio.run(fetch_cashflow(symbol, roc_year, season))
+
+
+def upsert_cashflow(
+    session: Session, symbol: str, period: str, cf: Cashflow
+) -> int:
+    """將 Cashflow dict 寫入 financial_statements（statement_type='cashflow'）。
+
+    回傳 upsert 筆數（一律 1）。呼叫端負責 commit。
+    """
+    row = FinancialStatement(
+        symbol=symbol,
+        period=period,
+        statement_type=StatementType.CASHFLOW,
+        revenue=None,
+        gross_profit=None,
+        operating_income=None,
+        net_income=None,
+        eps=None,
+        total_assets=None,
+        total_liabilities=None,
+        total_equity=None,
+        operating_cf=cf["operating_cf"],
+        investing_cf=cf["investing_cf"],
+        financing_cf=cf["financing_cf"],
+    )
+    return upsert_financial_statements(session, [row])

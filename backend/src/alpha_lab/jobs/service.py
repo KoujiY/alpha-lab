@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from alpha_lab.analysis.pipeline import score_all
 from alpha_lab.collectors._twse_common import TWSERateLimitError
 from alpha_lab.collectors.mops import fetch_latest_monthly_revenues
+from alpha_lab.collectors.mops_cashflow import fetch_cashflow, upsert_cashflow
 from alpha_lab.collectors.mops_events import fetch_latest_events
 from alpha_lab.collectors.mops_financials import (
     fetch_balance_sheet,
@@ -171,6 +172,17 @@ async def _dispatch(
             n = upsert_financial_statements(session, total_rows)
             session.commit()
         return f"upserted {n} financial statement rows ({sorted(types)})"
+
+    if job_type is JobType.MOPS_CASHFLOW:
+        symbol = str(params["symbol"])
+        period = str(params["period"])  # "2026Q1"
+        year_int, quarter = int(period[:4]), int(period[-1])
+        roc_year = year_int - 1911
+        cf = await fetch_cashflow(symbol, roc_year, quarter)
+        with session_factory() as session:
+            n = upsert_cashflow(session, symbol, period, cf)
+            session.commit()
+        return f"upserted {n} cashflow row for {symbol} {period}"
 
     if job_type is JobType.SCORE:
         date_str = params.get("date")

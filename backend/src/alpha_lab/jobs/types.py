@@ -10,4 +10,5 @@ class JobType(StrEnum):
     TWSE_MARGIN = "twse_margin"
     MOPS_EVENTS = "mops_events"
     MOPS_FINANCIALS = "mops_financials"
+    MOPS_CASHFLOW = "mops_cashflow"
     SCORE = "score"
