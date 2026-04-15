@@ -1,0 +1,12 @@
+# alpha-lab 術語庫 v1
+#
+# 每個 key 為術語中文（或常用簡寫），value 必備 short；detail、related 可選。
+# Phase 2 task D1 會補到 15 條。
+
+PE:
+  term: 本益比
+  short: 股價相對每股盈餘的倍數，數字越低代表相對便宜。
+  detail: |
+    本益比（Price-to-Earnings Ratio）= 股價 / 每股盈餘（EPS）。
+    常被用來比較同產業公司的估值高低，但成長股本益比普遍偏高。
+  related: [EPS, PB]
