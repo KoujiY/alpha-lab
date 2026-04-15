@@ -33,11 +33,12 @@ async def test_fetch_stock_info_parses_sample_all() -> None:
     by_symbol = {r.symbol: r for r in rows}
     assert isinstance(by_symbol["2330"], StockInfo)
     assert by_symbol["2330"].name == "台積電"
-    assert by_symbol["2330"].industry == "半導體業"
-    assert by_symbol["2330"].listed_date == date(2017, 9, 5)
-    # 民國 80 年（前導 0 的 7 碼格式）
+    # TWSE 產業別實際回傳代碼字串（24 = 半導體業）
+    assert by_symbol["2330"].industry == "24"
+    # 8 碼西元日期
+    assert by_symbol["2330"].listed_date == date(1994, 9, 5)
     assert by_symbol["2317"].listed_date == date(1991, 2, 6)
-    assert by_symbol["2454"].industry == "半導體業"
+    assert by_symbol["2454"].industry == "24"
     assert by_symbol["2603"].name == "長榮"
 
 
@@ -55,20 +56,20 @@ async def test_fetch_stock_info_skips_rows_with_missing_fields() -> None:
         {
             "公司代號": "2330",
             "公司簡稱": "台積電",
-            "產業別": "半導體業",
-            "上市日期": "1060905",
+            "產業別": "24",
+            "上市日期": "19940905",
         },
         {
             # 缺 symbol -> 略過
             "公司簡稱": "無代號公司",
-            "產業別": "其他",
-            "上市日期": "1000101",
+            "產業別": "99",
+            "上市日期": "20110101",
         },
         {
             # 缺 name -> 略過
             "公司代號": "9999",
-            "產業別": "其他",
-            "上市日期": "1000101",
+            "產業別": "99",
+            "上市日期": "20110101",
         },
         {
             # industry 為空字串 / listed_date 為 "-" 應保留並轉 None

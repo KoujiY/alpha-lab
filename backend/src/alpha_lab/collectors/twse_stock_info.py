@@ -43,41 +43,57 @@ def _lookup(item: dict[str, Any], candidates: tuple[str, ...]) -> Any:
 
 
 def _parse_roc_date(s: Any) -> date | None:
-    """解析 TWSE 民國日期。支援 7 碼（YYYMMDD，前導 0）、6 碼（YYMMDD，< 民國 100）
-    以及 `YYY/MM/DD` 格式。無法解析回 None。
+    """解析 TWSE 日期欄位。支援格式：
+    - 8 碼西元 `YYYYMMDD`（實際 t187ap03_L 採用此格式，例如 `19940905`）
+    - 7 碼民國 `YYYMMDD`（前導 0）
+    - 6 碼民國 `YYMMDD`（< 民國 100）
+    - 帶分隔符：`YYY/MM/DD`、`YYY-MM-DD`、`YYYY/MM/DD`
+    無法解析回 None。
     """
     if s is None:
         return None
     raw = str(s).strip()
     if not raw or raw == "-":
         return None
-    # 分隔符變體：YYY/MM/DD or YYY-MM-DD
+    # 分隔符變體：支援西元或民國
     if "/" in raw or "-" in raw:
         parts = raw.replace("-", "/").split("/")
         if len(parts) != 3:
             return None
         try:
-            roc_year, month, day = (int(p) for p in parts)
+            year, month, day = (int(p) for p in parts)
         except ValueError:
+            return None
+        # 4 碼當西元，其他當民國
+        if year >= 1000:
+            ad_year = year
+        elif year > 0:
+            ad_year = year + 1911
+        else:
             return None
     else:
         digits = raw
         if not digits.isdigit():
             return None
-        if len(digits) == 7:
-            roc_year = int(digits[:3])
+        if len(digits) == 8:
+            # 西元 YYYYMMDD
+            ad_year = int(digits[:4])
+            month = int(digits[4:6])
+            day = int(digits[6:8])
+        elif len(digits) == 7:
+            # 民國 YYYMMDD
+            ad_year = int(digits[:3]) + 1911
             month = int(digits[3:5])
             day = int(digits[5:7])
         elif len(digits) == 6:
-            roc_year = int(digits[:2])
+            # 民國 YYMMDD
+            ad_year = int(digits[:2]) + 1911
             month = int(digits[2:4])
             day = int(digits[4:6])
         else:
             return None
-    if roc_year <= 0:
-        return None
     try:
-        return date(roc_year + 1911, month, day)
+        return date(ad_year, month, day)
     except ValueError:
         return None
 
