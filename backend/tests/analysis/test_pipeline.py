@@ -61,6 +61,17 @@ def _seed(session: Session) -> None:
                 total_equity=600,
             )
         )
+        for period in ("2026Q1", "2025Q4", "2025Q3", "2025Q2"):
+            session.add(
+                FinancialStatement(
+                    symbol=sym,
+                    period=period,
+                    statement_type="cashflow",
+                    operating_cf=1000 if sym == "2330" else 500,
+                    investing_cf=-300,
+                    financing_cf=-200,
+                )
+            )
         for year in (2025, 2026):
             for month in range(1, 13):
                 session.add(

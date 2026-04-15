@@ -94,6 +94,31 @@ def build_snapshot(session: Session, calc_date: date) -> Snapshot:
             .limit(1)
         ).scalar_one_or_none()
 
+        cashflow_rows = (
+            session.execute(
+                select(FinancialStatement)
+                .where(
+                    FinancialStatement.symbol == sym,
+                    FinancialStatement.statement_type == "cashflow",
+                )
+                .order_by(FinancialStatement.period.desc())
+                .limit(4)
+            )
+            .scalars()
+            .all()
+        )
+        fcf_ttm: float | None = None
+        if len(cashflow_rows) == 4 and all(
+            r.operating_cf is not None for r in cashflow_rows
+        ):
+            fcf_ttm = float(
+                sum(
+                    r.operating_cf
+                    for r in cashflow_rows
+                    if r.operating_cf is not None
+                )
+            )
+
         eps_ttm = _sum_n([r.eps for r in income_rows[:4]])
         prev_eps_ttm = _sum_n([r.eps for r in income_rows[4:8]])
         rev_ttm = _sum_n([r.revenue for r in income_rows[:4]])
@@ -137,6 +162,7 @@ def build_snapshot(session: Session, calc_date: date) -> Snapshot:
             "roe": roe,
             "gross_margin": gross_margin,
             "debt_ratio": debt_ratio,
+            "fcf": fcf_ttm,
         }
 
     return Snapshot(value=value, growth=growth, dividend=dividend, quality=quality)
