@@ -111,3 +111,28 @@ export interface ScoreResponse {
   symbol: string;
   latest: FactorBreakdown | null;
 }
+
+export type PortfolioStyle = "conservative" | "balanced" | "aggressive";
+
+export interface Holding {
+  symbol: string;
+  name: string;
+  weight: number;
+  score_breakdown: FactorBreakdown;
+}
+
+export interface Portfolio {
+  style: PortfolioStyle;
+  label: string;
+  is_top_pick: boolean;
+  holdings: Holding[];
+  expected_yield: number | null;
+  risk_score: number | null;
+  reasoning_ref: string | null;
+}
+
+export interface RecommendResponse {
+  generated_at: string;
+  calc_date: string;
+  portfolios: Portfolio[];
+}

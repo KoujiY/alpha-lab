@@ -7,3 +7,17 @@ export async function apiGet<T>(path: string): Promise<T> {
   }
   return response.json() as Promise<T>;
 }
+
+export async function apiPost<T>(
+  path: string,
+  params?: Record<string, string>,
+): Promise<T> {
+  const query = params ? `?${new URLSearchParams(params).toString()}` : "";
+  const response = await fetch(`${API_BASE}${path}${query}`, {
+    method: "POST",
+  });
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status} ${response.statusText}`);
+  }
+  return response.json() as Promise<T>;
+}
