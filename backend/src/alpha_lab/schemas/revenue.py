@@ -13,6 +13,6 @@ class MonthlyRevenue(BaseModel):
     symbol: str = Field(..., min_length=1, max_length=10)
     year: int = Field(..., ge=1990, le=2100, description="西元年")
     month: int = Field(..., ge=1, le=12)
-    revenue: int = Field(..., ge=0, description="當月營收（千元）")
+    revenue: int = Field(..., description="當月營收（千元），可能為負（退款/沖銷/調整）")
     yoy_growth: float | None = Field(None, description="去年同月比，%")
     mom_growth: float | None = Field(None, description="上月比，%")

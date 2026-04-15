@@ -34,6 +34,7 @@ related: [twse.md, ../architecture/data-flow.md]
 - `資料年月` 格式 `"11503"` = 民國 115 年 3 月
 - 部分欄位可能為空字串或 `"-"`，以 `_parse_optional_float` 處理
 - Open API 不含歷史月份；Phase 1.5 要補歷史月需改爬 HTML 或用 `t21sc03` 檔下載
+- `revenue` 可能為負（退款/沖銷/調整），schema 不加 `ge=0` 約束
 
 ### Phase 1.5 規劃新增
 
