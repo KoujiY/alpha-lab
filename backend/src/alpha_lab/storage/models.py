@@ -85,3 +85,90 @@ class Job(Base):
     )
     started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class InstitutionalTrade(Base):
+    """三大法人買賣超（TWSE T86）。單位：股。"""
+
+    __tablename__ = "institutional_trades"
+
+    symbol: Mapped[str] = mapped_column(
+        String(10), ForeignKey("stocks.symbol"), primary_key=True
+    )
+    trade_date: Mapped[date] = mapped_column(Date, primary_key=True)
+    foreign_net: Mapped[int] = mapped_column(Integer, nullable=False)
+    trust_net: Mapped[int] = mapped_column(Integer, nullable=False)
+    dealer_net: Mapped[int] = mapped_column(Integer, nullable=False)
+    total_net: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+class MarginTrade(Base):
+    """融資融券（TWSE MI_MARGN）。單位：張。"""
+
+    __tablename__ = "margin_trades"
+
+    symbol: Mapped[str] = mapped_column(
+        String(10), ForeignKey("stocks.symbol"), primary_key=True
+    )
+    trade_date: Mapped[date] = mapped_column(Date, primary_key=True)
+    margin_balance: Mapped[int] = mapped_column(Integer, nullable=False)
+    margin_buy: Mapped[int] = mapped_column(Integer, nullable=False)
+    margin_sell: Mapped[int] = mapped_column(Integer, nullable=False)
+    short_balance: Mapped[int] = mapped_column(Integer, nullable=False)
+    short_sell: Mapped[int] = mapped_column(Integer, nullable=False)
+    short_cover: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+class Event(Base):
+    """重大訊息（MOPS t146sb05）。
+
+    主鍵為 autoincrement id — 同公司同時刻可能多則訊息，且內容需保留全文。
+    """
+
+    __tablename__ = "events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    symbol: Mapped[str] = mapped_column(
+        String(10), ForeignKey("stocks.symbol"), nullable=False, index=True
+    )
+    event_datetime: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, index=True
+    )
+    event_type: Mapped[str] = mapped_column(String(128), nullable=False)
+    title: Mapped[str] = mapped_column(Text, nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False, default="")
+
+
+class FinancialStatement(Base):
+    """季報三表（MOPS t164sb03 / t164sb04 / t164sb05）。
+
+    寬表策略：統一 (symbol, period, statement_type) 主鍵；三類欄位集都 nullable。
+    raw_json_text 保留原始項目（SQLite 用 Text 儲存 JSON 字串）。
+    """
+
+    __tablename__ = "financial_statements"
+
+    symbol: Mapped[str] = mapped_column(
+        String(10), ForeignKey("stocks.symbol"), primary_key=True
+    )
+    period: Mapped[str] = mapped_column(String(8), primary_key=True)  # "2026Q1"
+    statement_type: Mapped[str] = mapped_column(String(16), primary_key=True)
+
+    # income
+    revenue: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    gross_profit: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    operating_income: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    net_income: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    eps: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    # balance
+    total_assets: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    total_liabilities: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    total_equity: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    # cashflow
+    operating_cf: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    investing_cf: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    financing_cf: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    raw_json_text: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
