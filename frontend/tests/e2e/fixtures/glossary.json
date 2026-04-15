@@ -1,0 +1,4 @@
+{
+  "PE": { "term": "本益比", "short": "股價相對每股盈餘的倍數", "detail": "", "related": [] },
+  "EPS": { "term": "每股盈餘", "short": "公司每股賺多少錢", "detail": "", "related": [] }
+}

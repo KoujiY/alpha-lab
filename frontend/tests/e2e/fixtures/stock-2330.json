@@ -1,0 +1,37 @@
+{
+  "meta": {
+    "symbol": "2330",
+    "name": "台積電",
+    "industry": "半導體",
+    "listed_date": "1994-09-05"
+  },
+  "prices": [
+    { "trade_date": "2026-04-10", "open": 600, "high": 610, "low": 595, "close": 605, "volume": 10000 },
+    { "trade_date": "2026-04-14", "open": 605, "high": 615, "low": 600, "close": 612, "volume": 12000 }
+  ],
+  "revenues": [
+    { "year": 2026, "month": 3, "revenue": 250000000000, "yoy_growth": 0.15, "mom_growth": 0.05 }
+  ],
+  "financials": [
+    {
+      "period": "2026Q1",
+      "revenue": 700000000000,
+      "gross_profit": 400000000000,
+      "operating_income": 350000000000,
+      "net_income": 280000000000,
+      "eps": 10.8,
+      "total_assets": 5000000000000,
+      "total_liabilities": 1500000000000,
+      "total_equity": 3500000000000
+    }
+  ],
+  "institutional": [
+    { "trade_date": "2026-04-14", "foreign_net": 1000000, "trust_net": 500000, "dealer_net": -200000, "total_net": 1300000 }
+  ],
+  "margin": [
+    { "trade_date": "2026-04-14", "margin_balance": 10000, "margin_buy": 100, "margin_sell": 50, "short_balance": 2000, "short_sell": 20, "short_cover": 10 }
+  ],
+  "events": [
+    { "id": 1, "event_datetime": "2026-04-10T15:30:00", "event_type": "財報", "title": "公布 Q1 財報", "content": "營收創新高" }
+  ]
+}
