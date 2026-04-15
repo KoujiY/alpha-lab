@@ -1,9 +1,13 @@
 """Stocks API routes。
 
+GET /api/stocks?q=&limit= → 股票清單（搜尋 autocomplete 用）
 GET /api/stocks/{symbol}/overview → 個股頁首屏聚合資料
-GET /api/stocks/{symbol}/prices?start=&end= → 股價細端點
+GET /api/stocks/{symbol}/prices?start=&end=&limit= → 股價細端點
 GET /api/stocks/{symbol}/revenues?limit= → 月營收細端點
-... (see A3)
+GET /api/stocks/{symbol}/financials?limit= → 季報細端點
+GET /api/stocks/{symbol}/institutional?limit= → 三大法人細端點
+GET /api/stocks/{symbol}/margin?limit= → 融資融券細端點
+GET /api/stocks/{symbol}/events?limit= → 重大訊息細端點
 """
 
 from datetime import date as _date
@@ -35,6 +39,7 @@ from alpha_lab.storage.models import (
 
 router = APIRouter(tags=["stocks"])
 
+LIST_DEFAULT_LIMIT = 50
 PRICES_DEFAULT_LIMIT = 60
 REVENUES_DEFAULT_LIMIT = 12
 FINANCIALS_DEFAULT_LIMIT = 4
@@ -172,7 +177,7 @@ def _load_events(session: Session, symbol: str, limit: int) -> list[EventPoint]:
 @router.get("/stocks", response_model=list[StockMeta])
 async def list_stocks(
     q: str | None = Query(None, description="查詢代號或名稱（部分字串）"),
-    limit: int = Query(50, ge=1, le=500),
+    limit: int = Query(LIST_DEFAULT_LIMIT, ge=1, le=500),
 ) -> list[StockMeta]:
     with session_scope() as session:
         stmt = select(Stock)
