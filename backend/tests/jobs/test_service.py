@@ -184,3 +184,39 @@ async def test_run_job_sync_twse_margin_happy_path(session_factory) -> None:
         assert completed is not None
         assert completed.status == "completed"
         assert session.query(MTRow).count() == 1
+
+
+@pytest.mark.asyncio
+async def test_run_job_sync_mops_events_happy_path(session_factory) -> None:
+    payload = [
+        {
+            "出表日期": "1150411",
+            "發言日期": "1150410",
+            "發言時間": "143020",
+            "公司代號": "2330",
+            "公司名稱": "台積電",
+            "主旨": "配息案",
+            "符合條款": "第五款",
+            "說明": "每股 11 元",
+        },
+    ]
+
+    with session_factory() as session:
+        job = create_job(
+            session,
+            job_type=JobType.MOPS_EVENTS,
+            params={"symbols": ["2330"]},
+        )
+        session.commit()
+        job_id = job.id
+
+    with respx.mock(base_url="https://openapi.twse.com.tw") as mock:
+        mock.get("/v1/opendata/t187ap04_L").respond(json=payload)
+        await run_job_sync(job_id=job_id, session_factory=session_factory)
+
+    with session_factory() as session:
+        from alpha_lab.storage.models import Event as EventRow
+        completed = session.get(Job, job_id)
+        assert completed is not None
+        assert completed.status == "completed"
+        assert session.query(EventRow).count() == 1

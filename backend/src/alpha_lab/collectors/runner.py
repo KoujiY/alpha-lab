@@ -6,12 +6,14 @@ Stock 主資料採「若不存在就建立 placeholder」策略（name 用 symbo
 
 from sqlalchemy.orm import Session
 
+from alpha_lab.schemas.event import Event as EventSchema
 from alpha_lab.schemas.institutional import (
     InstitutionalTrade as InstitutionalTradeSchema,
 )
 from alpha_lab.schemas.margin import MarginTrade as MarginTradeSchema
 from alpha_lab.schemas.price import DailyPrice
 from alpha_lab.schemas.revenue import MonthlyRevenue
+from alpha_lab.storage.models import Event as EventRow
 from alpha_lab.storage.models import (
     InstitutionalTrade as InstitutionalTradeRow,
 )
@@ -147,3 +149,40 @@ def upsert_margin_trades(
             existing.short_balance = row.short_balance
         count += 1
     return count
+
+
+def upsert_events(session: Session, rows: list[EventSchema]) -> int:
+    """upsert 重大訊息。以 (symbol, event_datetime, title) 查重。回傳新插入筆數。
+
+    既存則 skip（重大訊息不 overwrite，避免修改歷史紀錄）。
+    """
+    inserted = 0
+    for row in rows:
+        _ensure_stock(session, row.symbol)
+        # datetime 需為 naive（存 SQLite DateTime）；若 caller 傳 aware 需轉
+        dt = (
+            row.event_datetime.replace(tzinfo=None)
+            if row.event_datetime.tzinfo
+            else row.event_datetime
+        )
+        existing = (
+            session.query(EventRow)
+            .filter(
+                EventRow.symbol == row.symbol,
+                EventRow.event_datetime == dt,
+                EventRow.title == row.title,
+            )
+            .first()
+        )
+        if existing is None:
+            session.add(
+                EventRow(
+                    symbol=row.symbol,
+                    event_datetime=dt,
+                    event_type=row.event_type,
+                    title=row.title,
+                    content=row.content,
+                )
+            )
+            inserted += 1
+    return inserted
