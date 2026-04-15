@@ -41,12 +41,23 @@ def test_parse_args_defaults() -> None:
     ns = daily_collect._parse_args([])
     assert ns.date is None
     assert ns.symbols is None
+    assert ns.all is False
 
 
 def test_parse_args_with_values() -> None:
     ns = daily_collect._parse_args(["--date", "2026-04-11", "--symbols", "2330,2317"])
     assert ns.date == "2026-04-11"
     assert ns.symbols == "2330,2317"
+
+
+def test_parse_args_all_flag() -> None:
+    ns = daily_collect._parse_args(["--all"])
+    assert ns.all is True
+
+
+def test_parse_args_symbols_and_all_mutually_exclusive() -> None:
+    with pytest.raises(SystemExit):
+        daily_collect._parse_args(["--symbols", "2330", "--all"])
 
 
 def test_parse_date_none_returns_today() -> None:
@@ -144,6 +155,7 @@ async def test_run_daily_collect_all_jobs_complete(session_factory, capsys) -> N
         results = await daily_collect.run_daily_collect(
             trade_date=date(2026, 4, 11),
             symbols=["2330"],
+            all_market=False,
             session_factory=session_factory,
         )
 
@@ -164,9 +176,14 @@ async def test_run_daily_collect_all_jobs_complete(session_factory, capsys) -> N
 
 
 @pytest.mark.asyncio
-async def test_run_daily_collect_skips_prices_when_no_symbols_and_empty_db(
+async def test_skips_prices_when_no_symbols_and_no_all_flag(
     session_factory, capsys
 ) -> None:
+    """未傳 --symbols 也未傳 --all 時，即使 DB 有 watchlist 也要 skip prices（保險）。"""
+    with session_factory() as session:
+        session.add(Stock(symbol="2330", name="台積電"))
+        session.commit()
+
     with respx.mock(assert_all_called=False) as mock:
         mock.get("https://www.twse.com.tw/rwd/zh/fund/T86").respond(
             json={"stat": "OK", "fields": [], "data": []}
@@ -184,17 +201,46 @@ async def test_run_daily_collect_skips_prices_when_no_symbols_and_empty_db(
         results = await daily_collect.run_daily_collect(
             trade_date=date(2026, 4, 11),
             symbols=None,
+            all_market=False,
             session_factory=session_factory,
         )
 
     labels = [r[0] for r in results]
     assert labels == ["TWSE institutional", "TWSE margin", "MOPS events"]
     out = capsys.readouterr().out
-    assert "[TWSE prices] skipped (no --symbols and stocks table is empty)" in out
+    assert "[TWSE prices] skipped" in out
+    assert "--symbols" in out and "--all" in out
 
 
 @pytest.mark.asyncio
-async def test_uses_db_watchlist_when_no_symbols(session_factory, capsys) -> None:
+async def test_all_flag_with_empty_db_skips_prices(session_factory, capsys) -> None:
+    with respx.mock(assert_all_called=False) as mock:
+        mock.get("https://www.twse.com.tw/rwd/zh/fund/T86").respond(
+            json={"stat": "OK", "fields": [], "data": []}
+        )
+        mock.get("https://www.twse.com.tw/rwd/zh/marginTrading/MI_MARGN").respond(
+            json={
+                "stat": "OK",
+                "tables": [
+                    {"title": "信用交易彙總", "groups": [], "fields": [], "data": []},
+                ],
+            }
+        )
+        mock.get("https://openapi.twse.com.tw/v1/opendata/t187ap04_L").respond(json=[])
+
+        await daily_collect.run_daily_collect(
+            trade_date=date(2026, 4, 11),
+            symbols=None,
+            all_market=True,
+            session_factory=session_factory,
+        )
+
+    out = capsys.readouterr().out
+    assert "[TWSE prices] skipped (stocks table is empty)" in out
+
+
+@pytest.mark.asyncio
+async def test_uses_db_watchlist_when_all_flag(session_factory, capsys) -> None:
     # 先於 DB 放入兩檔 watchlist 股票
     with session_factory() as session:
         session.add(Stock(symbol="2317", name="鴻海"))
@@ -232,6 +278,7 @@ async def test_uses_db_watchlist_when_no_symbols(session_factory, capsys) -> Non
         results = await daily_collect.run_daily_collect(
             trade_date=date(2026, 4, 11),
             symbols=None,
+            all_market=True,
             session_factory=session_factory,
         )
 

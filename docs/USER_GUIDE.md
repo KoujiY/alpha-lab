@@ -49,7 +49,7 @@ pnpm dev
 ### 個股頁
 
 1. 確認後端已啟動（`uvicorn alpha_lab.api.main:app --reload`）、前端 dev server（`pnpm dev`）
-2. 資料已抓取：`cd backend && .venv/Scripts/python.exe -m scripts.daily_collect`（至少抓過目標 symbol 的股價與月營收；需用 backend venv）
+2. 資料已抓取：`cd backend && .venv/Scripts/python.exe -m scripts.daily_collect --symbols 2330`（至少抓過目標 symbol 的股價與月營收；需用 backend venv。`--symbols` 指定要抓的股票；如需對 DB watchlist 全體抓 prices 請用 `--all`，否則 prices 會被 skip 以免誤觸 TWSE 限流）
 3. 瀏覽器開 `http://localhost:5173/`，右上角搜尋框輸入股票代號（例：2330）按 Enter
 4. 個股頁會顯示：基本資料、股價走勢、關鍵指標、月營收、季報摘要、三大法人、融資融券、重大訊息
 5. 將游標停在下劃虛線的術語（例：本益比 (PE)、EPS）會跳出簡短定義

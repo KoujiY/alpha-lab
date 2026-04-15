@@ -61,10 +61,13 @@ API 輪詢 / CLI 印出結果
 
 - CLI 封裝「TWSE 日成交 + 三大法人 + 融資融券 + 重大訊息」四類 daily job
 - 不走 HTTP API，直接呼叫 `create_job` + `run_job_sync`
-- **`--symbols` 省略時**：從 DB `stocks` 表讀 watchlist 當 TWSE 日成交的 symbols 清單（逐檔抓）；若 DB 為空才真正 skip（2026-04-15 加入）
-- 三大法人 / 融資融券 / 重大訊息則不吃 watchlist，保持 `symbols=None` 意即「全市場」
+- **Prices flag（2026-04-15 加入全市場保險）**：`--symbols` 與 `--all` 互斥
+  - `--symbols 2330,2317` → 用傳入清單逐檔抓（最常見用法）
+  - `--all` → 明示意圖跑 DB watchlist 全體（逐檔抓約 20-40 分鐘，有 TWSE IP 限流風險）
+  - 皆未傳 → **skip prices** 並印引導訊息（避免誤觸 1000+ 檔全市場抓取）
+  - `--all` 但 `stocks` 表為空 → skip prices 並提示
+- 三大法人 / 融資融券 / 重大訊息則不吃 watchlist，保持 `symbols=None` 意即「全市場」——這三個端點本來就是「單次打、回全市場」，跟 prices 的「逐檔打」不同
 - 未來若要排程，以 OS cron / Windows 排程器呼叫此腳本（Phase 1.5/2 階段不做排程本身）
-- **實務注意**：全 watchlist（上千檔）逐檔抓耗時 20-40 分鐘且有 TWSE 限流風險，平時建議傳 `--symbols` 顯式指定
 
 ## 關鍵檔案
 

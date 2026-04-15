@@ -1,12 +1,15 @@
 """每日例行抓取 CLI。
 
 用法：
-    python scripts/daily_collect.py                                   # 今天、全體上市（prices 會被跳過）
-    python scripts/daily_collect.py --date 2026-04-11
+    python scripts/daily_collect.py                                   # 今天、三大法人/融資融券/重大訊息；prices 會被 skip
     python scripts/daily_collect.py --symbols 2330,2317 --date 2026-04-11
+    python scripts/daily_collect.py --all --date 2026-04-11            # 明示意圖：對 DB watchlist 全體逐檔抓 prices
 
-會依序跑：TWSE 日成交（需 --symbols） → 三大法人 → 融資融券 → 重大訊息。
+會依序跑：TWSE 日成交（需 --symbols 或 --all） → 三大法人 → 融資融券 → 重大訊息。
 月營收、季報不列入 daily（發布頻率不同），請手動觸發對應 job。
+
+全市場保險：`--symbols` 與 `--all` 互斥；未傳兩者之一時 prices 會被 skip，避免誤觸
+TWSE 對短時間多次請求的 IP 限流（逐檔抓全 watchlist 約耗時 20-40 分鐘）。
 """
 
 from __future__ import annotations
@@ -35,11 +38,17 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         default=None,
         help="trade date YYYY-MM-DD, default today",
     )
-    p.add_argument(
+    group = p.add_mutually_exclusive_group()
+    group.add_argument(
         "--symbols",
         type=str,
         default=None,
-        help="comma-separated symbols, default ALL",
+        help="comma-separated symbols for TWSE prices",
+    )
+    group.add_argument(
+        "--all",
+        action="store_true",
+        help="run TWSE prices against entire DB watchlist (may take 20-40 min, risk of TWSE rate limit)",
     )
     return p.parse_args(argv)
 
@@ -87,28 +96,42 @@ async def _run_one(
 async def run_daily_collect(
     trade_date: date,
     symbols: list[str] | None,
+    all_market: bool,
     session_factory: sessionmaker[Session],
 ) -> list[tuple[str, str, str]]:
-    """主流程。回傳 [(label, status, summary), ...]，供測試斷言。"""
+    """主流程。回傳 [(label, status, summary), ...]，供測試斷言。
+
+    prices 執行條件：
+    - symbols 非空 → 用傳入 symbols
+    - symbols 為 None 且 all_market=True → 用 DB watchlist
+    - 其餘（含未傳任何 flag、空 --symbols）→ skip prices
+    """
     trade_date_str = trade_date.strftime("%Y-%m-%d")
     year_month_str = trade_date.strftime("%Y-%m")
 
     print(
         f"=== daily_collect trade_date={trade_date_str} "
-        f"symbols={symbols or 'ALL'} ==="
+        f"symbols={symbols or ('ALL' if all_market else 'NONE')} ==="
     )
 
     results: list[tuple[str, str, str]] = []
 
-    # TWSE_PRICES 每次抓一檔、一個月；collector 不支援 ALL。
-    # 若未提供 --symbols，fallback 讀取 DB 的 stocks 表作為 watchlist。
-    price_symbols = symbols if symbols else _load_watchlist_symbols(session_factory)
+    price_symbols: list[str] = []
+    if symbols:
+        price_symbols = symbols
+    elif all_market:
+        price_symbols = _load_watchlist_symbols(session_factory)
+
     if not price_symbols:
         if symbols is not None:
-            # 顯式傳入空 list 的情境
             print("\n[TWSE prices] skipped (empty --symbols)")
+        elif all_market:
+            print("\n[TWSE prices] skipped (stocks table is empty)")
         else:
-            print("\n[TWSE prices] skipped (no --symbols and stocks table is empty)")
+            print(
+                "\n[TWSE prices] skipped (pass --symbols a,b,c or --all to enable; "
+                "--all iterates full DB watchlist which may trigger TWSE rate limit)"
+            )
     else:
         if not symbols:
             print(f"\n[TWSE prices] using DB watchlist ({len(price_symbols)} symbols)")
@@ -162,7 +185,7 @@ async def _async_main(argv: Sequence[str] | None = None) -> int:
         else None
     )
 
-    results = await run_daily_collect(trade_date, symbols, session_factory)
+    results = await run_daily_collect(trade_date, symbols, args.all, session_factory)
     any_failed = any(status != "completed" for _, status, _ in results)
     return 1 if any_failed else 0
 
