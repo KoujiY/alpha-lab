@@ -147,3 +147,21 @@ export interface L2TopicMeta {
 export interface L2Topic extends L2TopicMeta {
   body_markdown: string;
 }
+
+export type ReportType = "stock" | "portfolio" | "events" | "research";
+
+export interface ReportMeta {
+  id: string;
+  type: ReportType;
+  title: string;
+  symbols: string[];
+  tags: string[];
+  date: string;
+  path: string;
+  summary_line: string;
+  starred: boolean;
+}
+
+export interface ReportDetail extends ReportMeta {
+  body_markdown: string;
+}

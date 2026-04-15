@@ -14,6 +14,9 @@ export function AppLayout() {
             <Link to="/portfolios" className="text-sm text-slate-300 hover:text-sky-300">
               組合推薦
             </Link>
+            <Link to="/reports" className="text-sm text-slate-300 hover:text-sky-300">
+              回顧
+            </Link>
           </div>
           <HeaderSearch />
         </header>
