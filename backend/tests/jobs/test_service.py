@@ -124,3 +124,51 @@ async def test_run_job_sync_twse_institutional_happy_path(session_factory) -> No
         assert completed is not None
         assert completed.status == "completed"
         assert session.query(ITRow).count() == 1
+
+
+@pytest.mark.asyncio
+async def test_run_job_sync_twse_margin_happy_path(session_factory) -> None:
+    fields = [
+        "股票代號", "股票名稱",
+        "融資買進", "融資賣出", "現金償還", "融資前日餘額", "融資今日餘額",
+        "融資限額", "融資使用率(%)",
+        "融券買進", "融券賣出", "現券償還", "融券前日餘額", "融券今日餘額",
+        "融券限額", "融券使用率(%)",
+        "資券互抵", "註記",
+    ]
+    payload = {
+        "stat": "OK",
+        "tables": [
+            {
+                "fields": fields,
+                "data": [
+                    [
+                        "2330", "台積電",
+                        "500", "400", "0", "10100", "10200", "999999", "0.5",
+                        "30", "50", "0", "220", "200", "99999", "0.1",
+                        "0", "",
+                    ],
+                ],
+            }
+        ],
+    }
+
+    with session_factory() as session:
+        job = create_job(
+            session,
+            job_type=JobType.TWSE_MARGIN,
+            params={"trade_date": "2026-04-01"},
+        )
+        session.commit()
+        job_id = job.id
+
+    with respx.mock(base_url="https://www.twse.com.tw") as mock:
+        mock.get("/rwd/zh/marginTrading/MI_MARGN").respond(json=payload)
+        await run_job_sync(job_id=job_id, session_factory=session_factory)
+
+    with session_factory() as session:
+        from alpha_lab.storage.models import MarginTrade as MTRow
+        completed = session.get(Job, job_id)
+        assert completed is not None
+        assert completed.status == "completed"
+        assert session.query(MTRow).count() == 1

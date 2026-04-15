@@ -9,11 +9,13 @@ from sqlalchemy.orm import Session
 from alpha_lab.schemas.institutional import (
     InstitutionalTrade as InstitutionalTradeSchema,
 )
+from alpha_lab.schemas.margin import MarginTrade as MarginTradeSchema
 from alpha_lab.schemas.price import DailyPrice
 from alpha_lab.schemas.revenue import MonthlyRevenue
 from alpha_lab.storage.models import (
     InstitutionalTrade as InstitutionalTradeRow,
 )
+from alpha_lab.storage.models import MarginTrade as MarginTradeRow
 from alpha_lab.storage.models import PriceDaily, RevenueMonthly, Stock
 
 
@@ -108,5 +110,40 @@ def upsert_institutional_trades(
             existing.trust_net = row.trust_net
             existing.dealer_net = row.dealer_net
             existing.total_net = row.total_net
+        count += 1
+    return count
+
+
+def upsert_margin_trades(
+    session: Session, rows: list[MarginTradeSchema]
+) -> int:
+    """upsert 融資融券餘額。回傳寫入筆數。"""
+    count = 0
+    for row in rows:
+        _ensure_stock(session, row.symbol)
+        existing = session.get(
+            MarginTradeRow,
+            {"symbol": row.symbol, "trade_date": row.trade_date},
+        )
+        if existing is None:
+            session.add(
+                MarginTradeRow(
+                    symbol=row.symbol,
+                    trade_date=row.trade_date,
+                    margin_buy=row.margin_buy,
+                    margin_sell=row.margin_sell,
+                    margin_balance=row.margin_balance,
+                    short_sell=row.short_sell,
+                    short_cover=row.short_cover,
+                    short_balance=row.short_balance,
+                )
+            )
+        else:
+            existing.margin_buy = row.margin_buy
+            existing.margin_sell = row.margin_sell
+            existing.margin_balance = row.margin_balance
+            existing.short_sell = row.short_sell
+            existing.short_cover = row.short_cover
+            existing.short_balance = row.short_balance
         count += 1
     return count

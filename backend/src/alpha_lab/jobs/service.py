@@ -16,10 +16,12 @@ from alpha_lab.collectors.mops import fetch_latest_monthly_revenues
 from alpha_lab.collectors.runner import (
     upsert_daily_prices,
     upsert_institutional_trades,
+    upsert_margin_trades,
     upsert_monthly_revenues,
 )
 from alpha_lab.collectors.twse import fetch_daily_prices
 from alpha_lab.collectors.twse_institutional import fetch_institutional_trades
+from alpha_lab.collectors.twse_margin import fetch_margin_trades
 from alpha_lab.jobs.types import JobType
 from alpha_lab.storage.models import Job
 
@@ -112,5 +114,18 @@ async def _dispatch(
             n = upsert_institutional_trades(session, inst_rows)
             session.commit()
         return f"upserted {n} institutional rows for {trade_date_str}"
+
+    if job_type is JobType.TWSE_MARGIN:
+        trade_date_str = params["trade_date"]
+        year, month, day = trade_date_str.split("-")
+        symbols = params.get("symbols")
+        margin_rows = await fetch_margin_trades(
+            trade_date=date(int(year), int(month), int(day)),
+            symbols=symbols,
+        )
+        with session_factory() as session:
+            n = upsert_margin_trades(session, margin_rows)
+            session.commit()
+        return f"upserted {n} margin rows for {trade_date_str}"
 
     raise ValueError(f"unknown job type: {job_type}")
