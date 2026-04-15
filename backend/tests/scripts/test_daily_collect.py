@@ -142,7 +142,19 @@ async def test_run_daily_collect_all_jobs_complete(session_factory, capsys) -> N
         },
     ]
 
+    stock_info_payload = [
+        {
+            "公司代號": "2330",
+            "公司簡稱": "台積電",
+            "產業別": "半導體業",
+            "上市日期": "1060905",
+        },
+    ]
+
     with respx.mock(assert_all_called=False) as mock:
+        mock.get("https://openapi.twse.com.tw/v1/opendata/t187ap03_L").respond(
+            json=stock_info_payload
+        )
         mock.get("https://www.twse.com.tw/rwd/zh/afterTrading/STOCK_DAY").respond(
             json=stock_day_payload
         )
@@ -161,7 +173,13 @@ async def test_run_daily_collect_all_jobs_complete(session_factory, capsys) -> N
 
     labels = [r[0] for r in results]
     statuses = [r[1] for r in results]
-    assert labels == ["TWSE prices 2330", "TWSE institutional", "TWSE margin", "MOPS events"]
+    assert labels == [
+        "TWSE stock info",
+        "TWSE prices 2330",
+        "TWSE institutional",
+        "TWSE margin",
+        "MOPS events",
+    ]
     assert all(s == "completed" for s in statuses), results
 
     with session_factory() as session:
@@ -169,6 +187,11 @@ async def test_run_daily_collect_all_jobs_complete(session_factory, capsys) -> N
         assert session.query(InstitutionalTrade).count() == 1
         assert session.query(MarginTrade).count() == 1
         assert session.query(Event).count() == 1
+        # stock info 應在 prices 之前跑完，因此 2330 的 name/industry 已被填
+        tsmc = session.get(Stock, "2330")
+        assert tsmc is not None
+        assert tsmc.name == "台積電"
+        assert tsmc.industry == "半導體業"
 
     out = capsys.readouterr().out
     assert "daily_collect trade_date=2026-04-11" in out
@@ -185,6 +208,7 @@ async def test_skips_prices_when_no_symbols_and_no_all_flag(
         session.commit()
 
     with respx.mock(assert_all_called=False) as mock:
+        mock.get("https://openapi.twse.com.tw/v1/opendata/t187ap03_L").respond(json=[])
         mock.get("https://www.twse.com.tw/rwd/zh/fund/T86").respond(
             json={"stat": "OK", "fields": [], "data": []}
         )
@@ -206,7 +230,7 @@ async def test_skips_prices_when_no_symbols_and_no_all_flag(
         )
 
     labels = [r[0] for r in results]
-    assert labels == ["TWSE institutional", "TWSE margin", "MOPS events"]
+    assert labels == ["TWSE stock info", "TWSE institutional", "TWSE margin", "MOPS events"]
     out = capsys.readouterr().out
     assert "[TWSE prices] skipped" in out
     assert "--symbols" in out and "--all" in out
@@ -215,6 +239,7 @@ async def test_skips_prices_when_no_symbols_and_no_all_flag(
 @pytest.mark.asyncio
 async def test_all_flag_with_empty_db_skips_prices(session_factory, capsys) -> None:
     with respx.mock(assert_all_called=False) as mock:
+        mock.get("https://openapi.twse.com.tw/v1/opendata/t187ap03_L").respond(json=[])
         mock.get("https://www.twse.com.tw/rwd/zh/fund/T86").respond(
             json={"stat": "OK", "fields": [], "data": []}
         )
@@ -259,6 +284,7 @@ async def test_uses_db_watchlist_when_all_flag(session_factory, capsys) -> None:
     }
 
     with respx.mock(assert_all_called=False) as mock:
+        mock.get("https://openapi.twse.com.tw/v1/opendata/t187ap03_L").respond(json=[])
         mock.get("https://www.twse.com.tw/rwd/zh/afterTrading/STOCK_DAY").respond(
             json=stock_day_payload
         )
@@ -284,6 +310,7 @@ async def test_uses_db_watchlist_when_all_flag(session_factory, capsys) -> None:
 
     labels = [r[0] for r in results]
     assert labels == [
+        "TWSE stock info",
         "TWSE prices 2317",
         "TWSE prices 2330",
         "TWSE institutional",
