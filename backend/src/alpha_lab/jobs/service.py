@@ -12,6 +12,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session, sessionmaker
 
+from alpha_lab.collectors._twse_common import TWSERateLimitError
 from alpha_lab.collectors.mops import fetch_latest_monthly_revenues
 from alpha_lab.collectors.mops_events import fetch_latest_events
 from alpha_lab.collectors.mops_financials import (
@@ -73,6 +74,15 @@ async def run_job_sync(
             completed.status = "completed"
             completed.result_summary = summary
             completed.finished_at = datetime.now(UTC)
+            session.commit()
+    except TWSERateLimitError as exc:
+        logger.warning("job %s blocked by TWSE WAF: %s", job_id, exc)
+        with session_factory() as session:
+            failed = session.get(Job, job_id)
+            assert failed is not None
+            failed.status = "failed"
+            failed.error_message = f"{type(exc).__name__}: {exc}"
+            failed.finished_at = datetime.now(UTC)
             session.commit()
     except Exception as exc:
         logger.exception("job %s failed", job_id)

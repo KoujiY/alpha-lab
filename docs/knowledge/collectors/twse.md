@@ -1,6 +1,6 @@
 ---
 domain: collectors/twse
-updated: 2026-04-15
+updated: 2026-04-15 (WAF 偵測)
 related: [mops.md, events.md, ../architecture/data-flow.md, ../architecture/data-models.md]
 ---
 
@@ -53,6 +53,19 @@ payload 結構為多層 tables：
 - 融資融券單位為「張」
 - **邊界防禦（2026-04-15 修）**：`stat` 含 `"沒有符合條件"` → 印 log 後回 `[]`；`_parse_int` 同樣接受數值型 cell
 
+### TWSE WAF / IP 封鎖（2026-04-15 發現）
+
+短時間內對 TWSE 發太多請求（例如 1000+ 檔逐檔抓 STOCK_DAY）會觸發 WAF，回：
+- HTTP status: **307 Temporary Redirect**
+- **無 `Location` header**（不是真的重導向）
+- body: `THE PAGE CANNOT BE ACCESSED! ... FOR SECURITY REASONS, THIS PAGE CAN NOT BE ACCESSED!`（中文：「基於安全考量，您所執行的查詢無法呈現」）
+
+三個端點（STOCK_DAY / T86 / MI_MARGN）全部受影響。封鎖時間約數分鐘～數小時不等。
+
+**處理方式**：[`_twse_common.check_twse_waf`](../../../backend/src/alpha_lab/collectors/_twse_common.py) 在 `resp.raise_for_status()` 之前先偵測 status 307 + 無 Location + body 含 `THE PAGE CANNOT BE ACCESSED` / `FOR SECURITY REASONS` / `基於安全考量` → 拋 `TWSERateLimitError`（而非 `HTTPStatusError`）。`jobs/service.py::run_job_sync` 改為 log.warning（不印 traceback），error_message 也是乾淨的訊息。
+
+**預防**：`daily_collect.py --symbols` 明示股票清單、避免誤觸 `--all` 跑全 watchlist（2026-04-15 已加保險 flag）。
+
 ### 通用坑
 
 - TWSE 對短時間多次請求會擋 IP；smoke 測試需手動節流（1 分鐘以上）
@@ -69,6 +82,7 @@ payload 結構為多層 tables：
 
 ## 關鍵檔案
 
+- [backend/src/alpha_lab/collectors/_twse_common.py](../../../backend/src/alpha_lab/collectors/_twse_common.py)
 - [backend/src/alpha_lab/collectors/twse.py](../../../backend/src/alpha_lab/collectors/twse.py)
 - [backend/src/alpha_lab/collectors/twse_institutional.py](../../../backend/src/alpha_lab/collectors/twse_institutional.py)
 - [backend/src/alpha_lab/collectors/twse_margin.py](../../../backend/src/alpha_lab/collectors/twse_margin.py)

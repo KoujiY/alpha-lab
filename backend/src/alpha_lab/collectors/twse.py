@@ -10,6 +10,7 @@ from datetime import date
 import httpx
 import truststore
 
+from alpha_lab.collectors._twse_common import check_twse_waf
 from alpha_lab.config import get_settings
 from alpha_lab.schemas.price import DailyPrice
 
@@ -61,6 +62,7 @@ async def fetch_daily_prices(symbol: str, year_month: date) -> list[DailyPrice]:
         verify=_build_ssl_context(),
     ) as client:
         resp = await client.get(STOCK_DAY_PATH, params=params)
+        check_twse_waf(resp)
         resp.raise_for_status()
         payload = resp.json()
 

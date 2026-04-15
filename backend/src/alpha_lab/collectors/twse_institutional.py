@@ -9,6 +9,7 @@ from datetime import date
 import httpx
 import truststore
 
+from alpha_lab.collectors._twse_common import check_twse_waf
 from alpha_lab.config import get_settings
 from alpha_lab.schemas.institutional import InstitutionalTrade
 
@@ -64,6 +65,7 @@ async def fetch_institutional_trades(
         verify=_build_ssl_context(),
     ) as client:
         resp = await client.get(T86_PATH, params=params)
+        check_twse_waf(resp)
         resp.raise_for_status()
         payload = resp.json()
 

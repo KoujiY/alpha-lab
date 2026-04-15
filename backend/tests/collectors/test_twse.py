@@ -8,6 +8,7 @@ import respx
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from alpha_lab.collectors._twse_common import TWSERateLimitError
 from alpha_lab.collectors.runner import upsert_daily_prices
 from alpha_lab.collectors.twse import fetch_daily_prices
 from alpha_lab.schemas.price import DailyPrice
@@ -56,6 +57,34 @@ async def test_fetch_daily_prices_raises_on_non_ok_stat() -> None:
 async def test_fetch_daily_prices_raises_on_http_error() -> None:
     with respx.mock(base_url="https://www.twse.com.tw") as mock:
         mock.get("/rwd/zh/afterTrading/STOCK_DAY").respond(500)
+
+        with pytest.raises(httpx.HTTPStatusError):
+            await fetch_daily_prices(symbol="2330", year_month=date(2026, 4, 1))
+
+
+async def test_fetch_daily_prices_raises_rate_limit_on_waf_307() -> None:
+    waf_body = (
+        "<html><body>THE PAGE CANNOT BE ACCESSED!<br>"
+        "FOR SECURITY REASONS, THIS PAGE CAN NOT BE ACCESSED!</body></html>"
+    )
+    with respx.mock(base_url="https://www.twse.com.tw") as mock:
+        mock.get("/rwd/zh/afterTrading/STOCK_DAY").respond(
+            307,
+            headers={"content-type": "text/html; charset=UTF-8"},
+            content=waf_body.encode("utf-8"),
+        )
+
+        with pytest.raises(TWSERateLimitError, match="WAF"):
+            await fetch_daily_prices(symbol="2330", year_month=date(2026, 4, 1))
+
+
+async def test_fetch_daily_prices_real_307_redirect_still_raises_http_error() -> None:
+    """沒有 WAF body（純 redirect）時 → 仍拋 HTTPStatusError，不誤判為 rate limit。"""
+    with respx.mock(base_url="https://www.twse.com.tw") as mock:
+        mock.get("/rwd/zh/afterTrading/STOCK_DAY").respond(
+            307,
+            headers={"location": "https://elsewhere/"},
+        )
 
         with pytest.raises(httpx.HTTPStatusError):
             await fetch_daily_prices(symbol="2330", year_month=date(2026, 4, 1))

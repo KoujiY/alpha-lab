@@ -18,6 +18,7 @@ from typing import Any
 import httpx
 import truststore
 
+from alpha_lab.collectors._twse_common import check_twse_waf
 from alpha_lab.config import get_settings
 from alpha_lab.schemas.margin import MarginTrade
 
@@ -149,6 +150,7 @@ async def fetch_margin_trades(
         verify=_build_ssl_context(),
     ) as client:
         resp = await client.get(MI_MARGN_PATH, params=params)
+        check_twse_waf(resp)
         resp.raise_for_status()
         payload = resp.json()
 

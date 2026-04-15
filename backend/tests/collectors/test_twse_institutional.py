@@ -6,6 +6,7 @@ import httpx
 import pytest
 import respx
 
+from alpha_lab.collectors._twse_common import TWSERateLimitError
 from alpha_lab.collectors.twse_institutional import fetch_institutional_trades
 from alpha_lab.schemas.institutional import InstitutionalTrade
 
@@ -89,6 +90,19 @@ async def test_fetch_institutional_trades_http_error() -> None:
     with respx.mock(base_url="https://www.twse.com.tw") as mock:
         mock.get("/rwd/zh/fund/T86").respond(500)
         with pytest.raises(httpx.HTTPStatusError):
+            await fetch_institutional_trades(trade_date=date(2026, 4, 1))
+
+
+@pytest.mark.asyncio
+async def test_fetch_institutional_raises_rate_limit_on_waf_307() -> None:
+    waf_body = "<html>THE PAGE CANNOT BE ACCESSED! FOR SECURITY REASONS...</html>"
+    with respx.mock(base_url="https://www.twse.com.tw") as mock:
+        mock.get("/rwd/zh/fund/T86").respond(
+            307,
+            headers={"content-type": "text/html; charset=UTF-8"},
+            content=waf_body.encode("utf-8"),
+        )
+        with pytest.raises(TWSERateLimitError):
             await fetch_institutional_trades(trade_date=date(2026, 4, 1))
 
 
