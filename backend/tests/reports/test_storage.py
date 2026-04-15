@@ -3,12 +3,18 @@
 from __future__ import annotations
 
 import json
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import pytest
 
-from alpha_lab.reports.service import create_report, get_report, list_reports
+from alpha_lab.reports.service import (
+    build_portfolio_report_markdown,
+    create_portfolio_report,
+    create_report,
+    get_report,
+    list_reports,
+)
 from alpha_lab.reports.storage import (
     append_summary,
     load_index,
@@ -16,7 +22,41 @@ from alpha_lab.reports.storage import (
     upsert_in_index,
     write_report_markdown,
 )
+from alpha_lab.schemas.portfolio import Holding, Portfolio, RecommendResponse
 from alpha_lab.schemas.report import ReportCreate, ReportMeta
+from alpha_lab.schemas.score import FactorBreakdown
+
+
+def _make_recommend_resp() -> RecommendResponse:
+    breakdown = FactorBreakdown(
+        symbol="2330",
+        calc_date=date(2026, 4, 15),
+        value_score=80,
+        growth_score=70,
+        dividend_score=20,
+        quality_score=75,
+        total_score=62.5,
+    )
+    return RecommendResponse(
+        generated_at=datetime(2026, 4, 15, 10, 0, tzinfo=UTC),
+        calc_date="2026-04-15",
+        portfolios=[
+            Portfolio(
+                style="balanced",
+                label="平衡型",
+                is_top_pick=True,
+                holdings=[
+                    Holding(
+                        symbol="2330",
+                        name="台積電",
+                        weight=1.0,
+                        score_breakdown=breakdown,
+                        reasons=["價值面亮眼", "股息面偏弱"],
+                    )
+                ],
+            )
+        ],
+    )
 
 
 @pytest.fixture(autouse=True)
@@ -192,6 +232,29 @@ def test_list_reports_filters_by_type_and_tag(_reports_root: Path) -> None:
 
 def test_get_report_missing_returns_none(_reports_root: Path) -> None:
     assert get_report("nope") is None
+
+
+def test_build_portfolio_report_markdown_has_sections(_reports_root: Path) -> None:
+    resp = _make_recommend_resp()
+    summary, body = build_portfolio_report_markdown(resp)
+    assert "calc_date=2026-04-15" in summary
+    assert "Top Pick: balanced" in summary
+    assert "# 本次推薦組合" in body
+    assert "## 平衡型" in body
+    assert "| 2330 |" in body
+    assert "- 價值面亮眼" in body
+
+
+def test_create_portfolio_report_writes_files(_reports_root: Path) -> None:
+    resp = _make_recommend_resp()
+    meta = create_portfolio_report(resp)
+    assert meta.id == "portfolio-2026-04-15"
+    assert "portfolio" in meta.tags and "recommend" in meta.tags
+    assert meta.symbols == ["2330"]
+
+    detail = get_report("portfolio-2026-04-15")
+    assert detail is not None
+    assert "平衡型" in detail.body_markdown
 
 
 def test_research_subject_slug(_reports_root: Path) -> None:
