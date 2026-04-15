@@ -1,0 +1,37 @@
+<!--
+合成 fixture，模擬 MOPS t164sb05 回應結構（公開財報欄位名稱）。
+目的：離線測試 parse_cashflow_html。真實驗收由群組 F 的端對端腳本執行。
+金額單位：千元。負數以括號呈現。
+-->
+<html>
+<head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"></head>
+<body>
+<table class="hasBorder">
+  <tr>
+    <th>會計項目</th>
+    <th>本期金額</th>
+    <th>前期金額</th>
+  </tr>
+  <tr>
+    <td>營業活動之淨現金流入（流出）</td>
+    <td>612,345,678</td>
+    <td>520,000,000</td>
+  </tr>
+  <tr>
+    <td>投資活動之淨現金流入（流出）</td>
+    <td>(234,567,890)</td>
+    <td>(200,000,000)</td>
+  </tr>
+  <tr>
+    <td>籌資活動之淨現金流入（流出）</td>
+    <td>(180,000,000)</td>
+    <td>(150,000,000)</td>
+  </tr>
+  <tr>
+    <td>本期現金及約當現金增加（減少）數</td>
+    <td>197,777,788</td>
+    <td>170,000,000</td>
+  </tr>
+</table>
+</body>
+</html>
