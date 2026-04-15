@@ -1,17 +1,20 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 
+import { useL2Panel } from "@/components/education/L2PanelContext";
 import { useGlossary } from "@/hooks/useGlossary";
 
 interface TermTooltipProps {
   term: string;
   children: ReactNode;
+  l2TopicId?: string;
 }
 
-export function TermTooltip({ term, children }: TermTooltipProps) {
+export function TermTooltip({ term, children, l2TopicId }: TermTooltipProps) {
   const { data } = useGlossary();
   const [open, setOpen] = useState(false);
   const entry = data?.[term];
+  const { openTopic } = useL2Panel();
 
   return (
     <span
@@ -35,6 +38,19 @@ export function TermTooltip({ term, children }: TermTooltipProps) {
         >
           <strong className="block mb-1">{entry.term}</strong>
           <span>{entry.short}</span>
+          {l2TopicId ? (
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                openTopic(l2TopicId);
+                setOpen(false);
+              }}
+              className="mt-2 block text-right text-xs text-sky-300 hover:text-sky-200"
+            >
+              看完整說明 →
+            </button>
+          ) : null}
         </span>
       ) : null}
     </span>

@@ -137,3 +137,13 @@ export interface RecommendResponse {
   calc_date: string;
   portfolios: Portfolio[];
 }
+
+export interface L2TopicMeta {
+  id: string;
+  title: string;
+  related_terms: string[];
+}
+
+export interface L2Topic extends L2TopicMeta {
+  body_markdown: string;
+}

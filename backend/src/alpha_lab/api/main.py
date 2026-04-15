@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from alpha_lab.api.routes import glossary, health, jobs, portfolios, stocks
+from alpha_lab.api.routes import education, glossary, health, jobs, portfolios, stocks
 from alpha_lab.storage.init_db import init_database
 
 
@@ -35,3 +35,4 @@ app.include_router(health.router, prefix="/api")
 app.include_router(jobs.router, prefix="/api")
 app.include_router(stocks.router, prefix="/api")
 app.include_router(portfolios.router, prefix="/api")
+app.include_router(education.router, prefix="/api")
