@@ -17,13 +17,14 @@ from collections.abc import Sequence
 from datetime import date, datetime
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from alpha_lab.jobs.service import create_job, run_job_sync
 from alpha_lab.jobs.types import JobType
 from alpha_lab.storage.engine import get_session_factory
 from alpha_lab.storage.init_db import init_database
-from alpha_lab.storage.models import Job
+from alpha_lab.storage.models import Job, Stock
 
 
 def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -48,6 +49,13 @@ def _parse_date(value: str | None) -> date:
         return date.today()
     y, m, d = value.split("-")
     return date(int(y), int(m), int(d))
+
+
+def _load_watchlist_symbols(session_factory: sessionmaker[Session]) -> list[str]:
+    """讀取 stocks 表中所有 symbol，依 symbol 升冪排序回傳。"""
+    with session_factory() as session:
+        rows = session.execute(select(Stock.symbol).order_by(Stock.symbol)).scalars().all()
+    return list(rows)
 
 
 async def _run_one(
@@ -92,9 +100,19 @@ async def run_daily_collect(
 
     results: list[tuple[str, str, str]] = []
 
-    # TWSE_PRICES 每次抓一檔、一個月；無 --symbols 則跳過（collector 不支援 ALL）
-    if symbols:
-        for sym in symbols:
+    # TWSE_PRICES 每次抓一檔、一個月；collector 不支援 ALL。
+    # 若未提供 --symbols，fallback 讀取 DB 的 stocks 表作為 watchlist。
+    price_symbols = symbols if symbols else _load_watchlist_symbols(session_factory)
+    if not price_symbols:
+        if symbols is not None:
+            # 顯式傳入空 list 的情境
+            print("\n[TWSE prices] skipped (empty --symbols)")
+        else:
+            print("\n[TWSE prices] skipped (no --symbols and stocks table is empty)")
+    else:
+        if not symbols:
+            print(f"\n[TWSE prices] using DB watchlist ({len(price_symbols)} symbols)")
+        for sym in price_symbols:
             label = f"TWSE prices {sym}"
             status, summary = await _run_one(
                 label,
@@ -103,8 +121,6 @@ async def run_daily_collect(
                 session_factory,
             )
             results.append((label, status, summary))
-    else:
-        print("\n[TWSE prices] skipped (no --symbols given)")
 
     daily_jobs: list[tuple[str, JobType, dict[str, Any]]] = [
         (

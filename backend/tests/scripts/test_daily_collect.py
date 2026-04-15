@@ -12,7 +12,14 @@ import respx
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from alpha_lab.storage.models import Base, Event, InstitutionalTrade, MarginTrade, PriceDaily
+from alpha_lab.storage.models import (
+    Base,
+    Event,
+    InstitutionalTrade,
+    MarginTrade,
+    PriceDaily,
+    Stock,
+)
 
 # 匯入 backend/scripts/daily_collect.py
 SCRIPT_PATH = Path(__file__).resolve().parents[2] / "scripts" / "daily_collect.py"
@@ -157,7 +164,7 @@ async def test_run_daily_collect_all_jobs_complete(session_factory, capsys) -> N
 
 
 @pytest.mark.asyncio
-async def test_run_daily_collect_skips_prices_when_no_symbols(
+async def test_run_daily_collect_skips_prices_when_no_symbols_and_empty_db(
     session_factory, capsys
 ) -> None:
     with respx.mock(assert_all_called=False) as mock:
@@ -183,4 +190,73 @@ async def test_run_daily_collect_skips_prices_when_no_symbols(
     labels = [r[0] for r in results]
     assert labels == ["TWSE institutional", "TWSE margin", "MOPS events"]
     out = capsys.readouterr().out
-    assert "[TWSE prices] skipped" in out
+    assert "[TWSE prices] skipped (no --symbols and stocks table is empty)" in out
+
+
+@pytest.mark.asyncio
+async def test_uses_db_watchlist_when_no_symbols(session_factory, capsys) -> None:
+    # 先於 DB 放入兩檔 watchlist 股票
+    with session_factory() as session:
+        session.add(Stock(symbol="2317", name="鴻海"))
+        session.add(Stock(symbol="2330", name="台積電"))
+        session.commit()
+
+    stock_day_payload = {
+        "stat": "OK",
+        "fields": [
+            "日期", "成交股數", "成交金額", "開盤價", "最高價",
+            "最低價", "收盤價", "漲跌價差", "成交筆數",
+        ],
+        "data": [
+            ["115/04/11", "1000", "0", "100", "110", "99", "105", "+5", "1"],
+        ],
+    }
+
+    with respx.mock(assert_all_called=False) as mock:
+        mock.get("https://www.twse.com.tw/rwd/zh/afterTrading/STOCK_DAY").respond(
+            json=stock_day_payload
+        )
+        mock.get("https://www.twse.com.tw/rwd/zh/fund/T86").respond(
+            json={"stat": "OK", "fields": [], "data": []}
+        )
+        mock.get("https://www.twse.com.tw/rwd/zh/marginTrading/MI_MARGN").respond(
+            json={
+                "stat": "OK",
+                "tables": [
+                    {"title": "信用交易彙總", "groups": [], "fields": [], "data": []},
+                ],
+            }
+        )
+        mock.get("https://openapi.twse.com.tw/v1/opendata/t187ap04_L").respond(json=[])
+
+        results = await daily_collect.run_daily_collect(
+            trade_date=date(2026, 4, 11),
+            symbols=None,
+            session_factory=session_factory,
+        )
+
+    labels = [r[0] for r in results]
+    assert labels == [
+        "TWSE prices 2317",
+        "TWSE prices 2330",
+        "TWSE institutional",
+        "TWSE margin",
+        "MOPS events",
+    ]
+    out = capsys.readouterr().out
+    assert "[TWSE prices] using DB watchlist (2 symbols)" in out
+
+
+def test_load_watchlist_symbols_returns_sorted(session_factory) -> None:
+    with session_factory() as session:
+        session.add(Stock(symbol="2330", name="台積電"))
+        session.add(Stock(symbol="1101", name="台泥"))
+        session.add(Stock(symbol="2317", name="鴻海"))
+        session.commit()
+
+    result = daily_collect._load_watchlist_symbols(session_factory)
+    assert result == ["1101", "2317", "2330"]
+
+
+def test_load_watchlist_symbols_empty(session_factory) -> None:
+    assert daily_collect._load_watchlist_symbols(session_factory) == []
