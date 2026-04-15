@@ -149,8 +149,12 @@ async def fetch_margin_trades(
         resp.raise_for_status()
         payload = resp.json()
 
-    if payload.get("stat") != "OK":
-        raise ValueError(f"TWSE MI_MARGN returned non-OK stat: {payload.get('stat')}")
+    stat = payload.get("stat", "")
+    if stat != "OK":
+        if "沒有符合條件" in stat:
+            print(f"[twse_margin] no data for {trade_date} (stat={stat})")
+            return []
+        raise ValueError(f"TWSE MI_MARGN returned non-OK stat: {stat}")
 
     table = _find_credit_table(payload)
     fields: list[str] = table["fields"]

@@ -123,6 +123,27 @@ async def test_fetch_margin_trades_non_ok_raises() -> None:
 
 
 @pytest.mark.asyncio
+async def test_fetch_margin_trades_returns_empty_when_no_data() -> None:
+    with respx.mock(base_url="https://www.twse.com.tw") as mock:
+        route = mock.get("/rwd/zh/marginTrading/MI_MARGN").respond(
+            json={"stat": "很抱歉，沒有符合條件的資料"},
+        )
+        result = await fetch_margin_trades(trade_date=date(2026, 4, 15))
+    assert result == []
+    assert route.called
+
+
+@pytest.mark.asyncio
+async def test_fetch_margin_trades_raises_on_other_non_ok_stat() -> None:
+    with respx.mock(base_url="https://www.twse.com.tw") as mock:
+        mock.get("/rwd/zh/marginTrading/MI_MARGN").respond(
+            json={"stat": "系統忙線中"},
+        )
+        with pytest.raises(ValueError, match="系統忙線中"):
+            await fetch_margin_trades(trade_date=date(2026, 4, 15))
+
+
+@pytest.mark.asyncio
 async def test_fetch_margin_trades_http_error() -> None:
     with respx.mock(base_url="https://www.twse.com.tw") as mock:
         mock.get("/rwd/zh/marginTrading/MI_MARGN").respond(500)
