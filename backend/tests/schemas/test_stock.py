@@ -52,3 +52,11 @@ def test_event_point_datetime_parsing() -> None:
         content="營收創新高",
     )
     assert point.event_datetime.year == 2026
+
+
+def test_financial_point_rejects_bad_period() -> None:
+    from alpha_lab.schemas.stock import FinancialPoint
+    with pytest.raises(ValidationError):
+        FinancialPoint(period="2026-Q1")
+    with pytest.raises(ValidationError):
+        FinancialPoint(period="2026Q5")
