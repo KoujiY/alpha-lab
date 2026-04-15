@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from alpha_lab.api.routes import health, jobs, stocks
+from alpha_lab.api.routes import glossary, health, jobs, stocks
 from alpha_lab.storage.init_db import init_database
 
 
@@ -30,6 +30,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(glossary.router, prefix="/api")
 app.include_router(health.router, prefix="/api")
 app.include_router(jobs.router, prefix="/api")
 app.include_router(stocks.router, prefix="/api")
