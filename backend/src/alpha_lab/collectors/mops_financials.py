@@ -12,6 +12,7 @@ balance / cashflow 留待 E2、E3。
 """
 
 import json
+import logging
 import ssl
 from typing import Any
 
@@ -20,6 +21,8 @@ import truststore
 
 from alpha_lab.config import get_settings
 from alpha_lab.schemas.financial_statement import FinancialStatement, StatementType
+
+logger = logging.getLogger(__name__)
 
 OPENAPI_BASE = "https://openapi.twse.com.tw"
 INCOME_PATH = "/v1/opendata/t187ap06_L_ci"
@@ -109,6 +112,23 @@ async def _fetch_payload(path: str) -> list[dict[str, Any]]:
         verify=_build_ssl_context(),
     ) as client:
         resp = await client.get(path)
+        # TWSE OpenAPI 對不存在的路徑會 302 重導到 /404.html
+        # 針對現金流量表（目前 OpenAPI 未提供），回空 list 並記 warning，
+        # 讓 job dispatch 仍能完成 income + balance 兩表。
+        if resp.status_code in (301, 302, 307, 308):
+            logger.warning(
+                "MOPS OpenAPI path %s redirected (%s) -> likely unavailable, "
+                "returning empty payload",
+                path,
+                resp.status_code,
+            )
+            return []
+        if resp.status_code == 404:
+            logger.warning(
+                "MOPS OpenAPI path %s returned 404, returning empty payload",
+                path,
+            )
+            return []
         resp.raise_for_status()
         payload = resp.json()
     if not isinstance(payload, list):

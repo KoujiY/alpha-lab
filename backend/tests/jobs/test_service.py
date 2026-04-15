@@ -220,3 +220,38 @@ async def test_run_job_sync_mops_events_happy_path(session_factory) -> None:
         assert completed is not None
         assert completed.status == "completed"
         assert session.query(EventRow).count() == 1
+
+
+@pytest.mark.asyncio
+async def test_run_job_sync_mops_financials_happy_path(session_factory) -> None:
+    income_payload = [
+        {
+            "年度": "115", "季別": "1",
+            "公司代號": "2330", "公司名稱": "台積電",
+            "營業收入": "300000000",
+            "營業毛利(毛損)": "180000000",
+            "營業利益(損失)": "120000000",
+            "本期淨利(淨損)": "100000000",
+            "基本每股盈餘(元)": "10.50",
+        },
+    ]
+
+    with session_factory() as session:
+        job = create_job(
+            session,
+            job_type=JobType.MOPS_FINANCIALS,
+            params={"symbols": ["2330"], "types": ["income"]},
+        )
+        session.commit()
+        job_id = job.id
+
+    with respx.mock(base_url="https://openapi.twse.com.tw") as mock:
+        mock.get("/v1/opendata/t187ap06_L_ci").respond(json=income_payload)
+        await run_job_sync(job_id=job_id, session_factory=session_factory)
+
+    with session_factory() as session:
+        from alpha_lab.storage.models import FinancialStatement as FSRow
+        completed = session.get(Job, job_id)
+        assert completed is not None
+        assert completed.status == "completed"
+        assert session.query(FSRow).count() == 1

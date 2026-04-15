@@ -14,9 +14,15 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from alpha_lab.collectors.mops import fetch_latest_monthly_revenues
 from alpha_lab.collectors.mops_events import fetch_latest_events
+from alpha_lab.collectors.mops_financials import (
+    fetch_balance_sheet,
+    fetch_cashflow_statement,
+    fetch_income_statement,
+)
 from alpha_lab.collectors.runner import (
     upsert_daily_prices,
     upsert_events,
+    upsert_financial_statements,
     upsert_institutional_trades,
     upsert_margin_trades,
     upsert_monthly_revenues,
@@ -137,5 +143,22 @@ async def _dispatch(
             n = upsert_events(session, event_rows)
             session.commit()
         return f"inserted {n} new events"
+
+    if job_type is JobType.MOPS_FINANCIALS:
+        symbols = params.get("symbols")
+        types = set(params.get("types") or ["income", "balance", "cashflow"])
+
+        total_rows: list[Any] = []
+        if "income" in types:
+            total_rows += await fetch_income_statement(symbols=symbols)
+        if "balance" in types:
+            total_rows += await fetch_balance_sheet(symbols=symbols)
+        if "cashflow" in types:
+            total_rows += await fetch_cashflow_statement(symbols=symbols)
+
+        with session_factory() as session:
+            n = upsert_financial_statements(session, total_rows)
+            session.commit()
+        return f"upserted {n} financial statement rows ({sorted(types)})"
 
     raise ValueError(f"unknown job type: {job_type}")
