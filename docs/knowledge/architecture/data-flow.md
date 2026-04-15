@@ -43,7 +43,7 @@ API 輪詢 / CLI 印出結果
 | `twse_institutional` | `fetch_institutional_trades` | `institutional_trades` |
 | `twse_margin` | `fetch_margin_trades` | `margin_trades` |
 | `mops_events` | `fetch_latest_events` | `events` |
-| `mops_financials` | `fetch_income_statement` / `fetch_balance_sheet`（cashflow 延至 Phase 2） | `financial_statements` |
+| `mops_financials` | `fetch_income_statement` / `fetch_balance_sheet`（cashflow 延至 Phase 3） | `financial_statements` |
 
 ### Session 管理原則
 

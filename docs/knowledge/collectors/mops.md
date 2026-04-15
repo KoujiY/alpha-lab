@@ -27,13 +27,13 @@ related: [twse.md, events.md, ../architecture/data-flow.md]
 - `fetch_income_statement(symbols=None)` — 最新季合併綜合損益
 - `fetch_balance_sheet(symbols=None)` — 最新季合併資產負債
 
-### 現金流量表：Phase 2 才做（重要）
+### 現金流量表：Phase 3 才做（重要）
 
 **TWSE OpenAPI 實測只開放 income（`t187ap06_L_ci`）+ balance（`t187ap07_L_ci`）兩張表**。原本規劃的 `t187ap10_L_ci` 現金流量端點**實際不存在 / 回 404**，因此：
 
 - Phase 1.5 **不**提供穩定的 cashflow 抓取；`fetch_cashflow_statement` 若存在也僅為 placeholder，**不建議在 production 呼叫**
 - `financial_statements` table schema 已預留 `cashflow` 類型的欄位（`operating_cf` / `investing_cf` / `financing_cf`），但目前無 collector 填入
-- **Phase 2 實作策略**：FCF 相關計分（free cash flow scoring）需要時，改爬 MOPS `t164sb05`（合併現金流量表 HTML 頁面），以 POST form + HTML parsing 實作，不走 OpenAPI
+- **Phase 3 實作策略**：多因子評分引擎的 FCF（free cash flow）因子實作時，改爬 MOPS `t164sb05`（合併現金流量表 HTML 頁面），以 POST form + HTML parsing 實作，不走 OpenAPI。Phase 2（個股頁）不需 FCF，因此不觸發此 task
 
 ### 資料單位與欄位
 
@@ -47,7 +47,7 @@ related: [twse.md, events.md, ../architecture/data-flow.md]
 三表共用 `FinancialStatement` Pydantic + `financial_statements` table，以 `statement_type` 區分：
 - `income`：填 `revenue / gross_profit / operating_income / net_income / eps`
 - `balance`：填 `total_assets / total_liabilities / total_equity`
-- `cashflow`：**Phase 2 才啟用**；欄位為 `operating_cf / investing_cf / financing_cf`
+- `cashflow`：**Phase 3 才啟用**（FCF 評分需要）；欄位為 `operating_cf / investing_cf / financing_cf`
 
 `raw_json_text` 欄位保留完整原始欄位（JSON 字串），供未來新 factor / 新指標使用。
 
@@ -57,7 +57,7 @@ related: [twse.md, events.md, ../architecture/data-flow.md]
 - 部分欄位可能為空字串或 `"-"`，以 `_parse_int_or_none` / `_parse_float_or_none` 處理
 - **OpenAPI 欄位 key 偶有前後空白或全形括號**（`"營業毛利(毛損)"`）— 需逐字匹配，實作先對 key 做 `.strip()` 正規化
 - OpenAPI 只回「最新一期」；歷史月份 / 歷史季度需改走 mopsov.twse.com.tw 的 POST form 介面，Phase 1.5 不做
-- 現金流量端點不存在（見上節），Phase 2 改走 `t164sb05` HTML scrape
+- 現金流量端點不存在（見上節），Phase 3 改走 `t164sb05` HTML scrape
 
 ### Phase 2+ 規劃新增
 
@@ -81,5 +81,5 @@ related: [twse.md, events.md, ../architecture/data-flow.md]
 
 - MOPS / OpenAPI 欄位名稱含特殊字元（全形括號、可能前後空白），必須逐字匹配並先 `.strip()` key；建議優先用 `.get(key)` 並提供 fallback key
 - 新增表類型：擴充 `StatementType` enum + `FinancialStatement` schema nullable 欄位 + `mops_financials.py` 新 fetch 函式 + `runner.upsert_financial_statements` fields dict + `_dispatch` `MOPS_FINANCIALS` 分支 types 清單
-- **Phase 2 加入 cashflow 時**：獨立模組（如 `mops_cashflow_html.py`），不要把 HTML 解析混入 OpenAPI 模組；需處理 MOPS session cookie、POST form、HTML table parse 等
+- **Phase 3 加入 cashflow 時（FCF 評分需要）**：獨立模組（如 `mops_cashflow_html.py`），不要把 HTML 解析混入 OpenAPI 模組；需處理 MOPS session cookie、POST form、HTML table parse 等
 - 歷史回補功能若要加：獨立新模組（`mops_history.py`），不要把 HTML 解析混入 OpenAPI 模組
