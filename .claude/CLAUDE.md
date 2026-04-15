@@ -30,6 +30,19 @@ cd frontend && pnpm test
 cd frontend && pnpm e2e
 ```
 
+## 使用者驗收指引 Shell 格式（MANDATORY）
+
+使用者跑驗收指令的環境是 **Windows CMD**（不是 bash、不是 PowerShell）。產出驗收指引時：
+
+- **路徑分隔**：用反斜線 `\`（如 `.venv\Scripts\python.exe`），不要用正斜線
+- **註解**：用 `REM`，不用 `#`
+- **變數**：用 `%VAR%`，不用 `$VAR`
+- **code fence 語言**：寫 ```cmd 不寫 ```bash
+- **多指令串接**：用 `&&`（cmd 也支援），但避免 `;`（cmd 不支援）
+- `rm` / `ls` / `cat` 等 Unix 指令不可用；需要刪檔用 `del`、列目錄用 `dir`
+
+開發者自己（Claude）用的 Bash tool 仍用 Unix 語法（harness 提供 bash shell），只有給使用者的驗收指引要切 CMD 格式。
+
 ## 開發流程
 
 1. 讀設計 spec 確認範圍
