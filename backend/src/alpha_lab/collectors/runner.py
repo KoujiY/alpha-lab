@@ -5,6 +5,7 @@ Stock 主資料採「若不存在就建立 placeholder」策略（name 用 symbo
 """
 
 import json
+from collections.abc import Iterable
 
 from sqlalchemy.orm import Session
 
@@ -31,16 +32,41 @@ from alpha_lab.storage.models import PriceDaily, RevenueMonthly, Stock
 
 
 def _ensure_stock(session: Session, symbol: str) -> None:
-    existing = session.get(Stock, symbol)
-    if existing is None:
-        session.add(Stock(symbol=symbol, name=symbol))
+    """確保單一 symbol 的 Stock placeholder 存在。
+
+    使用 `session.merge` 而非 `add`，避免同一 session 內重複 add 造成
+    `UNIQUE constraint failed: stocks.symbol`。merge 會：
+    - 若 DB/identity map 已有該 PK，載入既有物件（不會新建）
+    - 否則插入 placeholder（name 暫以 symbol 代替）
+    """
+    if session.get(Stock, symbol) is not None:
+        return
+    session.merge(Stock(symbol=symbol, name=symbol))
+
+
+def _ensure_stocks(session: Session, symbols: Iterable[str]) -> None:
+    """一次確保多個 symbols 的 Stock placeholder 存在（去重）。
+
+    在 upsert 迴圈前先呼叫，避免對同一 symbol 的多筆 row 重複觸發
+    `_ensure_stock`，進而引發 race / IntegrityError。
+    """
+    seen: set[str] = set()
+    for symbol in symbols:
+        if symbol in seen:
+            continue
+        seen.add(symbol)
+        _ensure_stock(session, symbol)
+    # flush 一次，讓後續 session.get(PriceDaily, ...) 等查詢能看到
+    # placeholder，同時在真的撞到 UNIQUE 衝突時立即拋錯，而不是等到
+    # commit 時才發現。
+    session.flush()
 
 
 def upsert_daily_prices(session: Session, rows: list[DailyPrice]) -> int:
     """upsert 日股價。回傳寫入筆數（新增 + 更新）。"""
+    _ensure_stocks(session, (row.symbol for row in rows))
     count = 0
     for row in rows:
-        _ensure_stock(session, row.symbol)
         existing = session.get(
             PriceDaily, {"symbol": row.symbol, "trade_date": row.trade_date}
         )
@@ -68,9 +94,9 @@ def upsert_daily_prices(session: Session, rows: list[DailyPrice]) -> int:
 
 def upsert_monthly_revenues(session: Session, rows: list[MonthlyRevenue]) -> int:
     """upsert 月營收。回傳寫入筆數。"""
+    _ensure_stocks(session, (row.symbol for row in rows))
     count = 0
     for row in rows:
-        _ensure_stock(session, row.symbol)
         existing = session.get(
             RevenueMonthly,
             {"symbol": row.symbol, "year": row.year, "month": row.month},
@@ -98,9 +124,9 @@ def upsert_institutional_trades(
     session: Session, rows: list[InstitutionalTradeSchema]
 ) -> int:
     """upsert 三大法人買賣超。回傳寫入筆數。"""
+    _ensure_stocks(session, (row.symbol for row in rows))
     count = 0
     for row in rows:
-        _ensure_stock(session, row.symbol)
         existing = session.get(
             InstitutionalTradeRow,
             {"symbol": row.symbol, "trade_date": row.trade_date},
@@ -129,9 +155,9 @@ def upsert_margin_trades(
     session: Session, rows: list[MarginTradeSchema]
 ) -> int:
     """upsert 融資融券餘額。回傳寫入筆數。"""
+    _ensure_stocks(session, (row.symbol for row in rows))
     count = 0
     for row in rows:
-        _ensure_stock(session, row.symbol)
         existing = session.get(
             MarginTradeRow,
             {"symbol": row.symbol, "trade_date": row.trade_date},
@@ -165,9 +191,9 @@ def upsert_events(session: Session, rows: list[EventSchema]) -> int:
 
     既存則 skip（重大訊息不 overwrite，避免修改歷史紀錄）。
     """
+    _ensure_stocks(session, (row.symbol for row in rows))
     inserted = 0
     for row in rows:
-        _ensure_stock(session, row.symbol)
         # datetime 需為 naive（存 SQLite DateTime）；若 caller 傳 aware 需轉
         dt = (
             row.event_datetime.replace(tzinfo=None)
@@ -206,9 +232,9 @@ def upsert_financial_statements(
     `raw_json_text`）。不同 `statement_type` 只會填自己那組欄位，其他欄位
     保持 None。
     """
+    _ensure_stocks(session, (row.symbol for row in rows))
     count = 0
     for row in rows:
-        _ensure_stock(session, row.symbol)
         statement_type_value = (
             row.statement_type.value
             if isinstance(row.statement_type, StatementType)
