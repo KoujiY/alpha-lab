@@ -1,7 +1,7 @@
 """Glossary API routes。
 
 GET /api/glossary          → 回全部術語（key → GlossaryTerm）
-GET /api/glossary/{term}   → 回單一術語
+GET /api/glossary/{term_key}   → 回單一術語
 """
 
 from fastapi import APIRouter, HTTPException
