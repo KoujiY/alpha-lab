@@ -203,3 +203,46 @@ export interface FilterResponse {
   total_count: number;
   stocks: ScreenerStock[];
 }
+
+// --- Saved Portfolios (Phase 6) ---
+
+export interface SavedHolding {
+  symbol: string;
+  name: string;
+  weight: number;
+  base_price: number;
+}
+
+export interface SavedPortfolioCreate {
+  style: PortfolioStyle;
+  label: string;
+  note?: string | null;
+  holdings: SavedHolding[];
+}
+
+export interface SavedPortfolioMeta {
+  id: number;
+  style: PortfolioStyle;
+  label: string;
+  note: string | null;
+  base_date: string;
+  created_at: string;
+  holdings_count: number;
+}
+
+export interface SavedPortfolioDetail extends SavedPortfolioMeta {
+  holdings: SavedHolding[];
+}
+
+export interface PerformancePoint {
+  date: string;
+  nav: number;
+  daily_return: number | null;
+}
+
+export interface PerformanceResponse {
+  portfolio: SavedPortfolioDetail;
+  points: PerformancePoint[];
+  latest_nav: number;
+  total_return: number;
+}

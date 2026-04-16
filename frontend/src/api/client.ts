@@ -24,3 +24,10 @@ export async function apiPost<T>(
   }
   return response.json() as Promise<T>;
 }
+
+export async function apiDelete(path: string): Promise<void> {
+  const response = await fetch(`${API_BASE}${path}`, { method: "DELETE" });
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status} ${response.statusText}`);
+  }
+}
