@@ -47,6 +47,7 @@ class PriceDaily(Base):
     low: Mapped[float] = mapped_column(Float, nullable=False)
     close: Mapped[float] = mapped_column(Float, nullable=False)
     volume: Mapped[int] = mapped_column(Integer, nullable=False)
+    source: Mapped[str | None] = mapped_column(String(16), nullable=True)
 
     stock: Mapped[Stock] = relationship(back_populates="prices")
 

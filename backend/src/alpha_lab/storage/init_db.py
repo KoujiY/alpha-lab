@@ -22,3 +22,5 @@ def init_database() -> None:
     add_column_if_missing(
         engine, "portfolios_saved", "parent_nav_at_fork", "FLOAT"
     )
+    # Phase 7B prices_daily 資料來源欄位
+    add_column_if_missing(engine, "prices_daily", "source", "TEXT")

@@ -49,3 +49,58 @@ def test_init_database_adds_parent_columns_to_existing_old_schema():
     finally:
         engine_module._engine = saved_engine
         engine_module._SessionLocal = saved_session_local
+
+
+def test_init_db_adds_source_column_to_prices_daily():
+    """舊 DB（無 source 欄位）經 init_database 後補上 source TEXT。"""
+    from sqlalchemy import create_engine, inspect, text
+    from sqlalchemy.pool import StaticPool
+
+    test_engine = create_engine(
+        "sqlite:///:memory:",
+        future=True,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    # 模擬舊版 schema：手動建 prices_daily（無 source 欄位）與 stocks（滿足 FK）
+    with test_engine.begin() as conn:
+        conn.execute(
+            text(
+                """
+                CREATE TABLE stocks (
+                    symbol VARCHAR(10) PRIMARY KEY,
+                    name VARCHAR(64) NOT NULL
+                )
+                """
+            )
+        )
+        conn.execute(
+            text(
+                """
+                CREATE TABLE prices_daily (
+                    symbol VARCHAR(10) NOT NULL,
+                    trade_date DATE NOT NULL,
+                    open FLOAT NOT NULL,
+                    high FLOAT NOT NULL,
+                    low FLOAT NOT NULL,
+                    close FLOAT NOT NULL,
+                    volume INTEGER NOT NULL,
+                    PRIMARY KEY (symbol, trade_date)
+                )
+                """
+            )
+        )
+
+    saved_engine = engine_module._engine
+    saved_session_local = engine_module._SessionLocal
+    engine_module._engine = test_engine
+    engine_module._SessionLocal = None
+    try:
+        from alpha_lab.storage.init_db import init_database
+        init_database()
+
+        cols = {c["name"] for c in inspect(test_engine).get_columns("prices_daily")}
+        assert "source" in cols
+    finally:
+        engine_module._engine = saved_engine
+        engine_module._SessionLocal = saved_session_local
