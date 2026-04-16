@@ -237,10 +237,12 @@ def test_get_report_missing_returns_none(_reports_root: Path) -> None:
 def test_build_portfolio_report_markdown_has_sections(_reports_root: Path) -> None:
     resp = _make_recommend_resp()
     summary, body = build_portfolio_report_markdown(resp)
-    assert "calc_date=2026-04-15" in summary
-    assert "Top Pick: balanced" in summary
+    assert "2026-04-15 推薦" in summary
+    assert "Top Pick：平衡型" in summary
+    assert "calc_date" not in summary
     assert "# 本次推薦組合" in body
     assert "## 平衡型" in body
+    assert "（balanced）" not in body
     assert "| 2330 |" in body
     assert "- 價值面亮眼" in body
 

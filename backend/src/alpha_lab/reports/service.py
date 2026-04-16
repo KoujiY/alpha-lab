@@ -103,13 +103,13 @@ def build_portfolio_report_markdown(resp: RecommendResponse) -> tuple[str, str]:
     lines.append("")
 
     total_holdings = 0
-    top_style: str | None = None
+    top_label: str | None = None
     for p in resp.portfolios:
         if p.is_top_pick:
-            top_style = p.style
+            top_label = p.label
         total_holdings += len(p.holdings)
 
-        lines.append(f"## {p.label}（{p.style}）")
+        lines.append(f"## {p.label}")
         if p.is_top_pick:
             lines.append("")
             lines.append("⭐ **本次 Top Pick**")
@@ -137,10 +137,10 @@ def build_portfolio_report_markdown(resp: RecommendResponse) -> tuple[str, str]:
                 lines.append(f"- {r}")
             lines.append("")
 
-    top_desc = top_style or (resp.portfolios[0].style if resp.portfolios else "n/a")
+    top_desc = top_label or (resp.portfolios[0].label if resp.portfolios else "無")
     summary_line = (
-        f"calc_date={resp.calc_date}，{len(resp.portfolios)} 組風格、"
-        f"合計 {total_holdings} 檔，Top Pick: {top_desc}"
+        f"{resp.calc_date} 推薦，共 {len(resp.portfolios)} 組風格、"
+        f"合計 {total_holdings} 檔，本次 Top Pick：{top_desc}"
     )
 
     body_markdown = "\n".join(lines).rstrip() + "\n"
