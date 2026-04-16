@@ -1,0 +1,24 @@
+[
+  {
+    "id": "portfolio-2026-04-15",
+    "type": "portfolio",
+    "title": "本次推薦組合 2026-04-15",
+    "symbols": ["2330", "2317"],
+    "tags": ["portfolio", "recommend"],
+    "date": "2026-04-15",
+    "path": "analysis/portfolio-2026-04-15.md",
+    "summary_line": "calc_date=2026-04-15，3 組風格、Top Pick: balanced",
+    "starred": false
+  },
+  {
+    "id": "stock-2330-2026-04-14",
+    "type": "stock",
+    "title": "台積電深度分析",
+    "symbols": ["2330"],
+    "tags": ["半導體", "buy"],
+    "date": "2026-04-14",
+    "path": "analysis/stock-2330-2026-04-14.md",
+    "summary_line": "Q1 財報亮眼，建議加碼",
+    "starred": false
+  }
+]

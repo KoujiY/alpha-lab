@@ -35,3 +35,18 @@ test("portfolios page shows recommendation reasons on click", async ({ page }) =
   await page.getByRole("button", { name: /查看理由/ }).first().click();
   await expect(page.getByText(/平衡組配置偏好/)).toBeVisible();
 });
+
+test("portfolios page save-report button triggers save with flag", async ({ page }) => {
+  const saveRequests: string[] = [];
+  await page.route("**/api/portfolios/recommend**", async (route: Route) => {
+    saveRequests.push(route.request().url());
+    await route.fulfill({ json: fixture });
+  });
+
+  await page.goto("/portfolios");
+  await expect(page.getByTestId("save-portfolio-report")).toBeVisible();
+  await page.getByTestId("save-portfolio-report").click();
+  await expect(page.getByText(/已儲存 portfolio-/)).toBeVisible();
+
+  expect(saveRequests.some((url) => url.includes("save_report=true"))).toBe(true);
+});
