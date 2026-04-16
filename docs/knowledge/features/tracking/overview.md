@@ -39,8 +39,10 @@ related: [../portfolio/recommender.md, ../../architecture/data-models.md, ../../
 
 **前端連續曲線：**
 
-- `PerformanceChart` 新增 `parentPoints` / `parentNavAtFork` props；拿到時把 self 段 NAV `× parentNavAtFork` 勾連 parent 段末端成為連續曲線，並在 fork date 畫垂直 `ReferenceLine`
-- `buildChartSeries` 函式單獨 export 供單測驗證（`frontend/tests/components/PerformanceChart.test.tsx`）
+- `PerformanceChart` 新增 `parentPoints` / `parentNavAtFork` / `childBaseDate` props；拿到時把 self 段 NAV `× parentNavAtFork` 勾連 parent 段末端成為連續曲線
+- **`forkDate` 鎖定 `childBaseDate`**（不是 `points[0].date`）：若當天被交集踢掉（某持股當日缺價），垂直 `ReferenceLine` 仍固定在真正的 fork 日，不會飄到第一個有 NAV 的日期
+- 在 `childBaseDate` 補一個 synthetic anchor row（`parent=scale, self=scale`），讓 parent 虛線與 self 實線視覺上在橘線上對齊。理論不變量：`child.nav(base_date) = 1.0 × scale = parent_nav_at_fork`
+- `buildChartSeries` 函式單獨 export 供單測驗證（`frontend/tests/components/PerformanceChart.test.tsx`），含「base_date 被交集踢掉」與「points[0] 重複 base_date」兩個 edge case
 - `PortfolioTrackingPage` 顯示「由 組合 #X 分裂」區塊（連結回父組合）與「自母組合起報酬」卡片（值為 `parent_nav_at_fork × latest_nav - 1`）
 - `StockActions.persistMerged` 在 `POST /api/portfolios/saved` body 補 `parent_id: detail.id`
 
