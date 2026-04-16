@@ -5,6 +5,7 @@
 - 適合本地個人工具；未來若要併發可改 Celery / RQ
 """
 
+import asyncio
 import json
 import logging
 from datetime import UTC, date, datetime
@@ -126,18 +127,46 @@ async def _dispatch(
         ym_date = date(int(year), int(month), 1)
         total = 0
         failed_symbols: list[str] = []
-        for sym in batch_symbols:
+        # 為什麼 throttle + retry：TWSE 對短時間連打有 WAF。batch 一次跑 20+ 檔
+        # 很容易撞到偶發失敗，實測會回「非 OK stat」（非標準 307）導致個檔
+        # 被誤判為永久失敗。加 0.3s 間隔降低觸發率，加一次 1s 退避重試吃掉偶發。
+        # TWSERateLimitError（明確 WAF 封鎖）不重試，直接上拋讓整個 job 失敗。
+        for i, sym in enumerate(batch_symbols):
+            if i > 0:
+                await asyncio.sleep(0.3)
             try:
                 price_rows = await fetch_daily_prices(
                     symbol=sym, year_month=ym_date
                 )
-                with session_factory() as session:
-                    n = upsert_daily_prices(session, price_rows)
-                    session.commit()
-                total += n
+            except TWSERateLimitError:
+                raise
+            except ValueError as exc:
+                logger.info(
+                    "batch prices: %s transient stat error, retry once: %s",
+                    sym,
+                    exc,
+                )
+                await asyncio.sleep(1.0)
+                try:
+                    price_rows = await fetch_daily_prices(
+                        symbol=sym, year_month=ym_date
+                    )
+                except Exception as retry_exc:
+                    logger.warning(
+                        "batch prices: %s failed after retry: %s",
+                        sym,
+                        retry_exc,
+                    )
+                    failed_symbols.append(sym)
+                    continue
             except Exception as exc:
                 logger.warning("batch prices: %s failed: %s", sym, exc)
                 failed_symbols.append(sym)
+                continue
+            with session_factory() as session:
+                n = upsert_daily_prices(session, price_rows)
+                session.commit()
+            total += n
         suffix = (
             f"; failed: {','.join(failed_symbols)}" if failed_symbols else ""
         )
