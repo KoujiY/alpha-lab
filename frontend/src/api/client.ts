@@ -1,9 +1,21 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
+async function readErrorDetail(response: Response): Promise<string> {
+  try {
+    const body = (await response.json()) as { detail?: unknown };
+    if (typeof body.detail === "string" && body.detail.length > 0) {
+      return body.detail;
+    }
+  } catch {
+    // body not JSON or empty — fall through
+  }
+  return `${response.status} ${response.statusText}`;
+}
+
 export async function apiGet<T>(path: string): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`);
   if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
+    throw new Error(`API error: ${await readErrorDetail(response)}`);
   }
   return response.json() as Promise<T>;
 }
@@ -20,7 +32,7 @@ export async function apiPost<T>(
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
+    throw new Error(`API error: ${await readErrorDetail(response)}`);
   }
   return response.json() as Promise<T>;
 }
@@ -28,6 +40,6 @@ export async function apiPost<T>(
 export async function apiDelete(path: string): Promise<void> {
   const response = await fetch(`${API_BASE}${path}`, { method: "DELETE" });
   if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
+    throw new Error(`API error: ${await readErrorDetail(response)}`);
   }
 }

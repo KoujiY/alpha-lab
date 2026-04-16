@@ -118,7 +118,8 @@ export function ScreenerPage() {
         <div className="rounded-lg border border-amber-700 bg-amber-900/30 p-4">
           <p className="text-amber-300">
             {filterMutation.error instanceof Error &&
-            filterMutation.error.message.includes("409")
+            (filterMutation.error.message.includes("no scores") ||
+              filterMutation.error.message.includes("409"))
               ? "尚無評分資料。請先執行評分計算（POST /api/jobs/collect，job_type='score'）。"
               : `篩選失敗：${filterMutation.error instanceof Error ? filterMutation.error.message : "未知錯誤"}`}
           </p>
