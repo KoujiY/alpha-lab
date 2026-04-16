@@ -41,9 +41,11 @@ describe("TutorialModeContext", () => {
     expect(result.current.mode).toBe("compact");
   });
 
-  it("throws when used outside provider", () => {
-    expect(() => renderHook(() => useTutorialMode())).toThrow(
-      /TutorialModeProvider/,
-    );
+  it("falls back to default full mode when used outside provider", () => {
+    const { result } = renderHook(() => useTutorialMode());
+    expect(result.current.mode).toBe("full");
+    // noop setters should not throw
+    result.current.setMode("off");
+    result.current.cycle();
   });
 });

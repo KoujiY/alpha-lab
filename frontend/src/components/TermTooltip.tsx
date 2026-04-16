@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 import { useL2Panel } from "@/components/education/L2PanelContext";
+import { useTutorialMode } from "@/contexts/TutorialModeContext";
 import { useGlossary } from "@/hooks/useGlossary";
 
 interface TermTooltipProps {
@@ -21,6 +22,7 @@ const GAP = 8; // 與 trigger 間距
 
 export function TermTooltip({ term, children, l2TopicId }: TermTooltipProps) {
   const { data } = useGlossary();
+  const { mode } = useTutorialMode();
   const [open, setOpen] = useState(false);
   const entry = data?.[term];
   const { openTopic } = useL2Panel();
@@ -44,6 +46,11 @@ export function TermTooltip({ term, children, l2TopicId }: TermTooltipProps) {
     setPos({ top, left });
   }, [open]);
 
+  // off 模式：完全不顯示教學痕跡，原樣輸出 children
+  if (mode === "off") {
+    return <>{children}</>;
+  }
+
   const handleOpenL2 = () => {
     if (!l2TopicId) return;
     openTopic(l2TopicId);
@@ -63,8 +70,11 @@ export function TermTooltip({ term, children, l2TopicId }: TermTooltipProps) {
       }
     : {};
 
+  // compact 模式：保留點擊進 L2 的入口（若 l2TopicId 存在）但不顯示 hover tooltip
+  const showTooltip = mode === "full";
+
   const tooltip =
-    open && entry && pos && typeof document !== "undefined"
+    showTooltip && open && entry && pos && typeof document !== "undefined"
       ? createPortal(
           <span
             role="tooltip"
@@ -90,15 +100,17 @@ export function TermTooltip({ term, children, l2TopicId }: TermTooltipProps) {
         )
       : null;
 
+  const hoverHandlers = showTooltip
+    ? {
+        onMouseEnter: () => setOpen(true),
+        onMouseLeave: () => setOpen(false),
+        onFocus: () => setOpen(true),
+        onBlur: () => setOpen(false),
+      }
+    : {};
+
   return (
-    <span
-      ref={triggerRef}
-      className="inline-block"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-      onFocus={() => setOpen(true)}
-      onBlur={() => setOpen(false)}
-    >
+    <span ref={triggerRef} className="inline-block" {...hoverHandlers}>
       <abbr
         title={entry?.short ?? term}
         className={
