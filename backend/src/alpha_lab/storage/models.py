@@ -192,3 +192,36 @@ class Score(Base):
     dividend_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     quality_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     total_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+
+class SavedPortfolio(Base):
+    """使用者儲存的組合（來自推薦 snapshot）。
+
+    holdings_json：list of {symbol, name, weight, base_price}
+    base_prices 在儲存當下從 prices_daily 取最新收盤價。
+    """
+
+    __tablename__ = "portfolios_saved"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    style: Mapped[str] = mapped_column(String(16), nullable=False)
+    label: Mapped[str] = mapped_column(String(32), nullable=False)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    holdings_json: Mapped[str] = mapped_column(Text, nullable=False)
+    base_date: Mapped[date] = mapped_column(Date, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=_utc_now
+    )
+
+
+class PortfolioSnapshot(Base):
+    """每日 NAV 快照（選用：`GET /saved/{id}/performance` 會同步寫一份）。"""
+
+    __tablename__ = "portfolio_snapshots"
+
+    portfolio_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("portfolios_saved.id"), primary_key=True
+    )
+    snapshot_date: Mapped[date] = mapped_column(Date, primary_key=True)
+    nav: Mapped[float] = mapped_column(Float, nullable=False)
+    holdings_json: Mapped[str] = mapped_column(Text, nullable=False)
