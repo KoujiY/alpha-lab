@@ -195,10 +195,12 @@ class Score(Base):
 
 
 class SavedPortfolio(Base):
-    """使用者儲存的組合（來自推薦 snapshot）。
+    """使用者儲存的組合（來自推薦 snapshot 或由其他組合 fork 而來）。
 
     holdings_json：list of {symbol, name, weight, base_price}
-    base_prices 在儲存當下從 prices_daily 取最新收盤價。
+    parent_id / parent_nav_at_fork：若此組合由另一組合「加入個股」建立，記錄血緣。
+    parent_nav_at_fork 存 fork 當下父組合的 latest_nav，讓績效頁能把父段與 self 段
+    NAV 接成連續曲線顯示。
     """
 
     __tablename__ = "portfolios_saved"
@@ -212,6 +214,12 @@ class SavedPortfolio(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, default=_utc_now
     )
+    parent_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("portfolios_saved.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    parent_nav_at_fork: Mapped[float | None] = mapped_column(Float, nullable=True)
 
 
 class PortfolioSnapshot(Base):

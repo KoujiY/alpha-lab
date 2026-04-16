@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import date as date_type
 
 from sqlalchemy import select
@@ -18,6 +19,8 @@ from alpha_lab.schemas.saved_portfolio import (
 )
 from alpha_lab.storage.engine import session_scope
 from alpha_lab.storage.models import PortfolioSnapshot, PriceDaily, SavedPortfolio
+
+logger = logging.getLogger(__name__)
 
 
 def _holdings_to_json(holdings: list[SavedHolding]) -> str:
@@ -38,6 +41,8 @@ def _row_to_meta(row: SavedPortfolio) -> SavedPortfolioMeta:
         base_date=row.base_date,
         created_at=row.created_at,
         holdings_count=len(holdings),
+        parent_id=row.parent_id,
+        parent_nav_at_fork=row.parent_nav_at_fork,
     )
 
 
@@ -51,6 +56,8 @@ def _row_to_detail(row: SavedPortfolio) -> SavedPortfolioDetail:
         base_date=row.base_date,
         created_at=row.created_at,
         holdings_count=len(holdings),
+        parent_id=row.parent_id,
+        parent_nav_at_fork=row.parent_nav_at_fork,
         holdings=holdings,
     )
 
@@ -124,7 +131,22 @@ def save_portfolio(
     也找不到（某 symbol 完全無 <= base_date 紀錄），raise ValueError。
 
     `base_price <= 0` 的持股會用最終決定的 base_date 從 prices_daily 補值。
+
+    Phase 7：若 `payload.parent_id` 非 None，自動查 parent latest_nav 存為
+    `parent_nav_at_fork`（讓績效頁能接續畫連續曲線）。parent 不存在則拋 ValueError。
+    注意：parent 若尚未有任何報價（全新組合同日 fork），`latest_nav` 預設 1.0，
+    `parent_nav_at_fork` 會被記成 1.0；這是刻意行為（NAV 尚未偏離起點）。
+    compute_performance 會先寫一筆 parent 的 `portfolio_snapshots`，之後才展開
+    child 的 session；這兩步並非單一 transaction，但 snapshots 屬快取，重試 save
+    會蓋回。
     """
+
+    parent_nav: float | None = None
+    if payload.parent_id is not None:
+        parent_perf = compute_performance(payload.parent_id)
+        if parent_perf is None:
+            raise ValueError(f"parent portfolio {payload.parent_id} not found")
+        parent_nav = parent_perf.latest_nav
 
     with session_scope() as session:
         symbols = [h.symbol for h in payload.holdings]
@@ -167,6 +189,8 @@ def save_portfolio(
             note=payload.note,
             holdings_json=_holdings_to_json(enriched_holdings),
             base_date=resolved_base_date,
+            parent_id=payload.parent_id,
+            parent_nav_at_fork=parent_nav,
         )
         session.add(row)
         session.flush()
@@ -216,12 +240,25 @@ def _load_price_map(
     return result
 
 
-def compute_performance(portfolio_id: int) -> PerformanceResponse | None:
+def compute_performance(
+    portfolio_id: int, _visited: set[int] | None = None
+) -> PerformanceResponse | None:
     """從 base_date 起每日 NAV：sum(weight_i * price_i(t) / base_price_i)。
 
     只取所有持股都有報價的日期；缺價日直接跳過。
     會同步 upsert 最新一筆到 `portfolio_snapshots`（供之後擴充排程用）。
+
+    Phase 7：若此組合有 parent_id，額外把父組合 `< base_date` 的 NAV points
+    附在 `parent_points`；前端可用 `parent_nav_at_fork` 把 self 段縮放後接續繪圖。
+    `_visited` 防止 parent 鏈上不該出現的 cycle 導致無窮遞迴（內部用，不公開）。
     """
+
+    visited = set(_visited) if _visited else set()
+    if portfolio_id in visited:
+        raise ValueError(
+            f"parent cycle detected involving portfolio {portfolio_id}"
+        )
+    visited.add(portfolio_id)
 
     with session_scope() as session:
         row = session.get(SavedPortfolio, portfolio_id)
@@ -231,7 +268,6 @@ def compute_performance(portfolio_id: int) -> PerformanceResponse | None:
         symbols = [h.symbol for h in holdings]
         price_map = _load_price_map(session, symbols, row.base_date)
 
-        # 取所有股票都有報價的日期交集
         common_dates: set[date_type] | None = None
         for sym in symbols:
             dates_for_sym = set(price_map[sym].keys())
@@ -255,7 +291,6 @@ def compute_performance(portfolio_id: int) -> PerformanceResponse | None:
         latest_nav = points[-1].nav if points else 1.0
         total_return = latest_nav - 1.0
 
-        # cache 最新一筆
         if points:
             session.merge(
                 PortfolioSnapshot(
@@ -267,10 +302,30 @@ def compute_performance(portfolio_id: int) -> PerformanceResponse | None:
             )
 
         detail = _row_to_detail(row)
+        parent_id = row.parent_id
+        parent_nav_at_fork = row.parent_nav_at_fork
+        child_base_date = row.base_date
+
+    parent_points: list[PerformancePoint] | None = None
+    if parent_id is not None:
+        parent_resp = compute_performance(parent_id, _visited=visited)
+        if parent_resp is None:
+            logger.warning(
+                "parent portfolio %d missing for child %d; "
+                "parent_nav_at_fork remains but parent_points will be None",
+                parent_id,
+                portfolio_id,
+            )
+        else:
+            parent_points = [
+                p for p in parent_resp.points if p.date < child_base_date
+            ]
 
     return PerformanceResponse(
         portfolio=detail,
         points=points,
         latest_nav=latest_nav,
         total_return=total_return,
+        parent_points=parent_points,
+        parent_nav_at_fork=parent_nav_at_fork,
     )
