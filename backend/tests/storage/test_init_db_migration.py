@@ -52,10 +52,7 @@ def test_init_database_adds_parent_columns_to_existing_old_schema():
 
 
 def test_init_db_adds_source_column_to_prices_daily():
-    """舊 DB（無 source 欄位）經 init_database 後補上 source TEXT。"""
-    from sqlalchemy import create_engine, inspect, text
-    from sqlalchemy.pool import StaticPool
-
+    """舊 DB（無 source 欄位）經 init_database 後補上 source TEXT，且既有 row 保留。"""
     test_engine = create_engine(
         "sqlite:///:memory:",
         future=True,
@@ -90,17 +87,37 @@ def test_init_db_adds_source_column_to_prices_daily():
                 """
             )
         )
+        conn.execute(
+            text("INSERT INTO stocks (symbol, name) VALUES ('2330', 'TSMC')")
+        )
+        conn.execute(
+            text(
+                "INSERT INTO prices_daily "
+                "(symbol, trade_date, open, high, low, close, volume) "
+                "VALUES ('2330', '2026-04-01', 1000, 1010, 995, 1005, 12345)"
+            )
+        )
 
     saved_engine = engine_module._engine
     saved_session_local = engine_module._SessionLocal
     engine_module._engine = test_engine
     engine_module._SessionLocal = None
     try:
-        from alpha_lab.storage.init_db import init_database
         init_database()
 
         cols = {c["name"] for c in inspect(test_engine).get_columns("prices_daily")}
         assert "source" in cols
+
+        with test_engine.begin() as conn:
+            row = conn.execute(
+                text(
+                    "SELECT symbol, trade_date, close, source "
+                    "FROM prices_daily WHERE symbol='2330'"
+                )
+            ).one()
+        assert row.symbol == "2330"
+        assert row.close == 1005
+        assert row.source is None
     finally:
         engine_module._engine = saved_engine
         engine_module._SessionLocal = saved_session_local
