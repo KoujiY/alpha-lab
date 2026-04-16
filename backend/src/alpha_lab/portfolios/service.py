@@ -55,22 +55,104 @@ def _row_to_detail(row: SavedPortfolio) -> SavedPortfolioDetail:
     )
 
 
+def _resolve_common_base_date(
+    session: Session, symbols: list[str], target_date: date_type
+) -> date_type | None:
+    """找所有 symbols 都有報價、且 <= target_date 的最近交易日。
+
+    若任一 symbol 在 prices_daily 完全無 <= target_date 的紀錄，回傳 None。
+    用途：讓 `save_portfolio` 能在週末 / 收盤前 / 部分日期缺料時自動 fallback
+    到最近一個「全部持股都報價」的交易日，而非硬要 `target_date` 當天。
+    """
+
+    common_dates: set[date_type] | None = None
+    for sym in symbols:
+        dates = set(
+            session.scalars(
+                select(PriceDaily.trade_date)
+                .where(PriceDaily.symbol == sym)
+                .where(PriceDaily.trade_date <= target_date)
+            ).all()
+        )
+        if not dates:
+            return None
+        common_dates = dates if common_dates is None else common_dates & dates
+        if not common_dates:
+            return None
+    return max(common_dates) if common_dates else None
+
+
+def probe_base_date(
+    symbols: list[str], target_date: date_type
+) -> tuple[date_type | None, list[str]]:
+    """檢查 target_date 當日哪些 symbols 缺報價，並回傳「全有報價的最近交易日」。
+
+    回傳 (resolved_date, missing_today_symbols)：
+    - resolved_date：所有 symbols 都有報價、且 <= target_date 的最大交易日；
+      若任一 symbol 完全無 <= target_date 的紀錄，回傳 None。
+    - missing_today_symbols：在 target_date 當日缺報價的 symbol 清單。
+
+    若 missing_today_symbols == []，前端可直接 strict save；否則應跳 dialog
+    讓使用者決定是先補抓資料還是同意以 resolved_date 為基準儲存。
+    """
+
+    with session_scope() as session:
+        resolved = _resolve_common_base_date(session, symbols, target_date)
+        missing_today: list[str] = []
+        for sym in symbols:
+            has_today = session.scalar(
+                select(PriceDaily.trade_date)
+                .where(PriceDaily.symbol == sym)
+                .where(PriceDaily.trade_date == target_date)
+            )
+            if has_today is None:
+                missing_today.append(sym)
+        return resolved, missing_today
+
+
 def save_portfolio(
     payload: SavedPortfolioCreate,
     *,
     base_date: date_type,
+    allow_fallback: bool = False,
 ) -> SavedPortfolioMeta:
+    """儲存組合。
+
+    預設 strict 模式：要求所有持股在 `base_date` 當日都有 prices_daily 報價。
+    若 `allow_fallback=True`（前端 dialog 已警示後使用者同意），當日缺料時自動退到
+    所有持股都有報價的最近交易日（`<= base_date`）。任一模式下，若連 fallback
+    也找不到（某 symbol 完全無 <= base_date 紀錄），raise ValueError。
+
+    `base_price <= 0` 的持股會用最終決定的 base_date 從 prices_daily 補值。
+    """
+
     with session_scope() as session:
+        symbols = [h.symbol for h in payload.holdings]
+
+        if allow_fallback:
+            resolved_base_date = _resolve_common_base_date(
+                session, symbols, base_date
+            )
+            if resolved_base_date is None:
+                raise ValueError(
+                    f"no common trade_date for {symbols} on or before {base_date}; "
+                    "run daily_collect for missing symbols first"
+                )
+        else:
+            resolved_base_date = base_date
+
         enriched_holdings: list[SavedHolding] = []
         for h in payload.holdings:
             if h.base_price <= 0:
                 close = session.scalar(
                     select(PriceDaily.close)
                     .where(PriceDaily.symbol == h.symbol)
-                    .where(PriceDaily.trade_date == base_date)
+                    .where(PriceDaily.trade_date == resolved_base_date)
                 )
                 if close is None:
-                    raise ValueError(f"no price for {h.symbol} on {base_date}")
+                    raise ValueError(
+                        f"no price for {h.symbol} on {resolved_base_date}"
+                    )
                 h = SavedHolding(
                     symbol=h.symbol,
                     name=h.name,
@@ -84,7 +166,7 @@ def save_portfolio(
             label=payload.label,
             note=payload.note,
             holdings_json=_holdings_to_json(enriched_holdings),
-            base_date=base_date,
+            base_date=resolved_base_date,
         )
         session.add(row)
         session.flush()

@@ -52,3 +52,17 @@ class PerformanceResponse(BaseModel):
     points: list[PerformancePoint]
     latest_nav: float
     total_return: float  # nav_last - 1.0
+
+
+class BaseDateProbe(BaseModel):
+    """`GET /api/portfolios/saved/probe` 回傳。
+
+    `today_available` 為 True 時前端可直接 strict save；否則前端應跳 dialog
+    顯示 `resolved_date` 與 `missing_today_symbols`，讓使用者決定要先補抓
+    報價還是同意以 `resolved_date` 為基準儲存。
+    """
+
+    target_date: date_type
+    resolved_date: date_type | None
+    today_available: bool
+    missing_today_symbols: list[str]

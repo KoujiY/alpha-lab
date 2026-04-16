@@ -130,3 +130,17 @@ def test_post_saved_requires_base_price_available():
     # 允許通過（前端傳入 base_price 即為使用者自選基準）；不回 409
     resp = client.post("/api/portfolios/saved", json=payload)
     assert resp.status_code == 201
+
+
+def test_probe_endpoint_reports_today_status():
+    _seed_prices()  # 只 seed 2330 在 2026-04-17
+    client = TestClient(app)
+    resp = client.get("/api/portfolios/saved/probe?symbols=2330,2317")
+    assert resp.status_code == 200
+    body = resp.json()
+    # today != 2026-04-17 → 至少一個 missing_today
+    # 2317 完全沒 seed → resolved_date 為 None
+    assert "today_available" in body
+    assert "missing_today_symbols" in body
+    assert "resolved_date" in body
+    assert "target_date" in body

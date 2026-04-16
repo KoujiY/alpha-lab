@@ -14,11 +14,13 @@ from alpha_lab.portfolios.service import (
     delete_saved,
     get_saved,
     list_saved,
+    probe_base_date,
     save_portfolio,
 )
 from alpha_lab.reports.service import create_portfolio_report
 from alpha_lab.schemas.portfolio import Portfolio, RecommendResponse
 from alpha_lab.schemas.saved_portfolio import (
+    BaseDateProbe,
     PerformanceResponse,
     SavedPortfolioCreate,
     SavedPortfolioDetail,
@@ -72,12 +74,36 @@ async def list_saved_portfolios_endpoint() -> list[SavedPortfolioMeta]:
     return list_saved()
 
 
+@router.get("/saved/probe", response_model=BaseDateProbe)
+async def probe_endpoint(
+    symbols: str = Query(..., description="逗號分隔的 symbol 清單，例 2330,2317"),
+) -> BaseDateProbe:
+    sym_list = [s.strip() for s in symbols.split(",") if s.strip()]
+    if not sym_list:
+        raise HTTPException(status_code=400, detail="symbols required")
+    target = date_type.today()
+    resolved, missing = probe_base_date(sym_list, target)
+    return BaseDateProbe(
+        target_date=target,
+        resolved_date=resolved,
+        today_available=len(missing) == 0,
+        missing_today_symbols=missing,
+    )
+
+
 @router.post("/saved", response_model=SavedPortfolioMeta, status_code=201)
 async def save_portfolio_endpoint(
     payload: SavedPortfolioCreate,
+    allow_fallback: bool = Query(
+        False,
+        description="若當日缺報價，自動退到所有持股都有報價的最近交易日。"
+        "前端應先呼叫 /saved/probe 確認再決定是否帶此參數。",
+    ),
 ) -> SavedPortfolioMeta:
     try:
-        return save_portfolio(payload, base_date=date_type.today())
+        return save_portfolio(
+            payload, base_date=date_type.today(), allow_fallback=allow_fallback
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 

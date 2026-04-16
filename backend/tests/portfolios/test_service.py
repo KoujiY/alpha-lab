@@ -15,6 +15,7 @@ from alpha_lab.portfolios.service import (
     delete_saved,
     get_saved,
     list_saved,
+    probe_base_date,
     save_portfolio,
 )
 from alpha_lab.schemas.saved_portfolio import SavedHolding, SavedPortfolioCreate
@@ -199,3 +200,73 @@ def test_save_portfolio_raises_when_base_price_missing(sample_prices):
             ),
             base_date=date(2026, 4, 17),
         )
+
+
+def test_save_portfolio_strict_fails_when_today_missing(sample_prices):
+    # sample_prices 只有 4/17；用 4/18 strict save 應該失敗
+    with pytest.raises(ValueError, match="no price"):
+        save_portfolio(
+            SavedPortfolioCreate(
+                style="balanced",
+                label="strict",
+                holdings=[
+                    SavedHolding(symbol="2330", name="台積電", weight=1.0, base_price=0.0),
+                ],
+            ),
+            base_date=date(2026, 4, 18),
+        )
+
+
+def test_save_portfolio_allow_fallback_uses_latest_common_date(sample_prices):
+    # sample_prices 只有 4/17；base_date=4/20 + allow_fallback → 退到 4/17
+    meta = save_portfolio(
+        SavedPortfolioCreate(
+            style="balanced",
+            label="fallback",
+            holdings=[
+                SavedHolding(symbol="2330", name="台積電", weight=0.6, base_price=0.0),
+                SavedHolding(symbol="2317", name="鴻海", weight=0.4, base_price=0.0),
+            ],
+        ),
+        base_date=date(2026, 4, 20),
+        allow_fallback=True,
+    )
+    assert meta.base_date == date(2026, 4, 17)
+    detail = get_saved(meta.id)
+    assert detail is not None
+    assert detail.holdings[0].base_price == pytest.approx(600.0)
+    assert detail.holdings[1].base_price == pytest.approx(100.0)
+
+
+def test_save_portfolio_allow_fallback_raises_when_no_common_date(sample_prices):
+    # 9999 完全無報價，allow_fallback 也救不了
+    with pytest.raises(ValueError, match="no common trade_date"):
+        save_portfolio(
+            SavedPortfolioCreate(
+                style="balanced",
+                label="no-common",
+                holdings=[
+                    SavedHolding(symbol="9999", name="NOPE", weight=1.0, base_price=0.0),
+                ],
+            ),
+            base_date=date(2026, 4, 17),
+            allow_fallback=True,
+        )
+
+
+def test_probe_base_date_returns_today_when_all_present(sample_prices):
+    resolved, missing = probe_base_date(["2330", "2317"], date(2026, 4, 17))
+    assert resolved == date(2026, 4, 17)
+    assert missing == []
+
+
+def test_probe_base_date_reports_missing_today(sample_prices):
+    resolved, missing = probe_base_date(["2330", "2317"], date(2026, 4, 18))
+    assert resolved == date(2026, 4, 17)
+    assert sorted(missing) == ["2317", "2330"]
+
+
+def test_probe_base_date_returns_none_when_no_history(sample_prices):
+    resolved, missing = probe_base_date(["9999"], date(2026, 4, 17))
+    assert resolved is None
+    assert missing == ["9999"]
