@@ -116,6 +116,19 @@ REM   POST /api/reports 帶 type=stock/research/portfolio/events + body_markdown
   - `data/reports/index.json` — meta 索引（前端列表直接吃這個）
   - `data/reports/summaries/<date>.json` — 當日每份報告一行摘要
 
+### 選股篩選器（Phase 5）
+
+Header 點「選股篩選」進 `/screener`，可依四因子分數篩選候選股：
+
+1. 四個滑桿分別設定 Value / Growth / Dividend / Quality 的「最低分數」門檻（0-100，步進 5）
+2. 按「篩選」→ 下方表格顯示符合條件的股票（代號、名稱、產業、四因子分數、總分）
+3. 點擊表頭可切換排序（升降序）
+4. 股票代號可點擊跳轉個股頁
+
+前提：`scores` 表需有資料（同組合推薦）。若 scores 為空，按篩選會顯示「尚無評分資料」引導提示。
+
+篩選器的資料量取決於跑過 data collection + scoring 的股票數。目前需手動觸發（Phase 7 才有自動排程）。
+
 ### 術語庫
 
 - 路徑：`backend/src/alpha_lab/glossary/terms.yaml`
@@ -136,9 +149,11 @@ REM   POST /api/reports 帶 type=stock/research/portfolio/events + body_markdown
 | 2 | 個股數據面板（A） |
 | 3 | 多因子組合推薦（C） |
 | 4 | 教學系統完整化 + 分析報告儲存（E） |
-| 5 | 選股篩選器（B） |
-| 6 | 組合追蹤（D） |
-| 7 | Claude API 整合（預留） |
+| 5 | 選股篩選器（B）✅ |
+| 6 | 組合追蹤 + 報告管理 + 教學開關（D） |
+| 7 | 數據源與自動化 |
+| 8 | UI 升級 |
+| 9 | 頁面擴充 |
 
 ## Rebuild 本地資料庫
 
@@ -163,7 +178,7 @@ cd backend
 .venv/Scripts/python.exe -c "import sqlite3; c=sqlite3.connect('../data/alpha_lab.db'); print(sorted([r[0] for r in c.execute('SELECT name FROM sqlite_master WHERE type=\"table\"')]))"
 ```
 
-預期輸出：`['events', 'financial_statements', 'institutional_trades', 'jobs', 'margin_trades', 'prices_daily', 'revenues_monthly', 'stocks']`
+預期輸出：`['events', 'financial_statements', 'institutional_trades', 'jobs', 'margin_trades', 'prices_daily', 'revenues_monthly', 'scores', 'stocks']`
 
 ## 常見問題
 
@@ -181,4 +196,4 @@ A：Phase 4 起，分析報告會儲存在 `data/reports/analysis/<id>.md`，同
 
 ---
 
-_文件同步於 Phase 4。後續 Phase 會持續擴充。_
+_文件同步於 Phase 5。後續 Phase 會持續擴充。_

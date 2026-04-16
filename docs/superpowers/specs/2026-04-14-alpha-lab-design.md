@@ -466,7 +466,7 @@ GET /api/glossary/K線
 | 2 | ✅ 完成（2026-04-15） | 功能 A | 個股頁、術語 Tooltip 基礎、術語庫 v1 |
 | 3 | ✅ 完成（2026-04-16） | 功能 C | 多因子評分引擎（Value/Growth/Dividend/Quality）、MOPS 現金流 collector（FCF）、組合推薦 API、`/portfolios` 頁面與個股頁雷達圖 |
 | 4 | ✅ 完成（2026-04-17） | 功能 E | 推薦理由靜態模板、L2 詳解側邊面板（5 個初始 topic）、報告儲存後端（`data/reports/`、`index.json`、summaries）、`/reports` 回顧列表與細節頁、「儲存此次推薦為報告」按鈕；TWSE 產業代碼→中文名稱映射表留待 Phase 5/6 再補 |
-| 5 | 未開始 | 功能 B：選股篩選器 | `POST /api/screener/filter`、`GET /api/screener/factors`、`/screener` 頁面 |
+| 5 | ✅ 完成（2026-04-17） | 功能 B：選股篩選器 | `POST /api/screener/filter`、`GET /api/screener/factors`、`/screener` 頁面（因子滑桿 + 可排序結果表格 + 409 引導提示）；`apiPost` 擴充 JSON body 支援 |
 | 6 | 未開始 | 功能 D + 報告管理 + 教學開關 | 組合追蹤（`portfolios_saved`、`portfolio_snapshots` 表、`GET/POST /portfolios/saved`、`GET /saved/{id}/performance`、`/portfolios/:id` 追蹤頁）、績效計算、報告管理（`PATCH /reports/{id}` 加星/改標籤、`DELETE /reports/{id}`）、報告全文搜尋 / 離線快取、教學三段密度開關（`TutorialModeContext` + 右上角快捷切換）、個股頁「收藏」「加入組合」按鈕 + 「相關分析報告」區塊 |
 | 7 | 未開始 | 數據源與自動化 | Yahoo Finance 備援數據源、新聞彙整（每週掃描）、每日自動簡報（`data/reports/daily/`）、`data/processed/` 計算後指標 |
 | 8 | 未開始 | UI 升級 | shadcn/ui 元件庫遷移、K 線圖改用 lightweight-charts |
