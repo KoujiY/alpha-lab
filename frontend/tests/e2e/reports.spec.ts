@@ -9,10 +9,10 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/health", (route: Route) =>
     route.fulfill({ json: { status: "ok" } }),
   );
-  await page.route("**/api/reports/portfolio-2026-04-15", (route: Route) =>
+  await page.route("**/api/reports/*", (route: Route) =>
     route.fulfill({ json: detailFixture }),
   );
-  await page.route("**/api/reports**", (route: Route) => {
+  await page.route("**/api/reports?*", (route: Route) => {
     const url = route.request().url();
     if (url.includes("type=stock")) {
       route.fulfill({
@@ -22,6 +22,9 @@ test.beforeEach(async ({ page }) => {
     }
     route.fulfill({ json: listFixture });
   });
+  await page.route("**/api/reports", (route: Route) =>
+    route.fulfill({ json: listFixture }),
+  );
 });
 
 test("reports list shows cards and filters by type", async ({ page }) => {
