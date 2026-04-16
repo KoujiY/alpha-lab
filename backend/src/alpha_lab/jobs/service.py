@@ -116,6 +116,36 @@ async def _dispatch(
             session.commit()
         return f"upserted {n} price rows for {symbol} {year_month_str}"
 
+    if job_type is JobType.TWSE_PRICES_BATCH:
+        batch_symbols: list[str] = [str(s) for s in params["symbols"]]
+        year_month_str = str(
+            params.get("year_month")
+            or datetime.now(UTC).date().strftime("%Y-%m")
+        )
+        year, month = year_month_str.split("-")
+        ym_date = date(int(year), int(month), 1)
+        total = 0
+        failed_symbols: list[str] = []
+        for sym in batch_symbols:
+            try:
+                price_rows = await fetch_daily_prices(
+                    symbol=sym, year_month=ym_date
+                )
+                with session_factory() as session:
+                    n = upsert_daily_prices(session, price_rows)
+                    session.commit()
+                total += n
+            except Exception as exc:
+                logger.warning("batch prices: %s failed: %s", sym, exc)
+                failed_symbols.append(sym)
+        suffix = (
+            f"; failed: {','.join(failed_symbols)}" if failed_symbols else ""
+        )
+        return (
+            f"batch upserted {total} price rows for {len(batch_symbols)} symbols "
+            f"{year_month_str}{suffix}"
+        )
+
     if job_type is JobType.TWSE_STOCK_INFO:
         symbols = params.get("symbols")
         info_rows = await fetch_stock_info(symbols=symbols)

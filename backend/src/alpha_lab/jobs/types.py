@@ -5,6 +5,7 @@ from enum import StrEnum
 
 class JobType(StrEnum):
     TWSE_PRICES = "twse_prices"
+    TWSE_PRICES_BATCH = "twse_prices_batch"  # 多 symbol 一次抓當月，前端用
     TWSE_STOCK_INFO = "twse_stock_info"
     MOPS_REVENUE = "mops_revenue"
     TWSE_INSTITUTIONAL = "twse_institutional"
