@@ -61,11 +61,29 @@ def save_portfolio(
     base_date: date_type,
 ) -> SavedPortfolioMeta:
     with session_scope() as session:
+        enriched_holdings: list[SavedHolding] = []
+        for h in payload.holdings:
+            if h.base_price <= 0:
+                close = session.scalar(
+                    select(PriceDaily.close)
+                    .where(PriceDaily.symbol == h.symbol)
+                    .where(PriceDaily.trade_date == base_date)
+                )
+                if close is None:
+                    raise ValueError(f"no price for {h.symbol} on {base_date}")
+                h = SavedHolding(
+                    symbol=h.symbol,
+                    name=h.name,
+                    weight=h.weight,
+                    base_price=close,
+                )
+            enriched_holdings.append(h)
+
         row = SavedPortfolio(
             style=payload.style,
             label=payload.label,
             note=payload.note,
-            holdings_json=_holdings_to_json(payload.holdings),
+            holdings_json=_holdings_to_json(enriched_holdings),
             base_date=base_date,
         )
         session.add(row)

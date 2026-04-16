@@ -13,6 +13,7 @@ from sqlalchemy.pool import StaticPool
 from alpha_lab.portfolios.service import (
     compute_performance,
     delete_saved,
+    get_saved,
     list_saved,
     save_portfolio,
 )
@@ -166,3 +167,35 @@ def test_compute_performance_missing_price_skips_day(sample_prices):
 
 def test_compute_performance_returns_none_for_unknown_id():
     assert compute_performance(99999) is None
+
+
+def test_save_portfolio_fills_base_price_from_prices_daily(sample_prices):
+    # base_price=0 → 由 service 查 prices_daily 回填
+    meta = save_portfolio(
+        SavedPortfolioCreate(
+            style="balanced",
+            label="auto-base-price",
+            holdings=[
+                SavedHolding(symbol="2330", name="台積電", weight=1.0, base_price=0.0),
+            ],
+        ),
+        base_date=date(2026, 4, 17),
+    )
+    detail = get_saved(meta.id)
+    assert detail is not None
+    assert detail.holdings[0].base_price == pytest.approx(600.0)
+
+
+def test_save_portfolio_raises_when_base_price_missing(sample_prices):
+    # 股票在 prices_daily 中沒資料 → raise ValueError
+    with pytest.raises(ValueError, match="no price"):
+        save_portfolio(
+            SavedPortfolioCreate(
+                style="balanced",
+                label="no-price",
+                holdings=[
+                    SavedHolding(symbol="9999", name="NOPE", weight=1.0, base_price=0.0),
+                ],
+            ),
+            base_date=date(2026, 4, 17),
+        )

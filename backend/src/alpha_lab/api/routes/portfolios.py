@@ -76,7 +76,10 @@ async def list_saved_portfolios_endpoint() -> list[SavedPortfolioMeta]:
 async def save_portfolio_endpoint(
     payload: SavedPortfolioCreate,
 ) -> SavedPortfolioMeta:
-    return save_portfolio(payload, base_date=date_type.today())
+    try:
+        return save_portfolio(payload, base_date=date_type.today())
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.get("/saved/{portfolio_id}", response_model=SavedPortfolioDetail)
