@@ -6,8 +6,10 @@ from datetime import date as date_type
 
 from alpha_lab.reports.storage import (
     append_summary,
+    delete_report_files,
     load_index,
     read_report_markdown,
+    update_in_index,
     upsert_in_index,
     write_report_markdown,
 )
@@ -17,6 +19,7 @@ from alpha_lab.schemas.report import (
     ReportDetail,
     ReportMeta,
     ReportType,
+    ReportUpdate,
 )
 
 
@@ -82,12 +85,26 @@ def create_report(payload: ReportCreate) -> ReportMeta:
 def list_reports(
     type_filter: ReportType | None = None,
     tag_filter: str | None = None,
+    symbol: str | None = None,
+    query: str | None = None,
 ) -> list[ReportMeta]:
     items = load_index()
     if type_filter is not None:
         items = [m for m in items if m.type == type_filter]
     if tag_filter is not None:
         items = [m for m in items if tag_filter in m.tags]
+    if symbol is not None:
+        items = [m for m in items if symbol in m.symbols]
+    if query is not None:
+        q = query.lower()
+        items = [
+            m
+            for m in items
+            if q in m.title.lower()
+            or q in m.summary_line.lower()
+            or any(q in s.lower() for s in m.symbols)
+            or any(q in t.lower() for t in m.tags)
+        ]
     return items
 
 
@@ -177,3 +194,27 @@ def get_report(report_id: str) -> ReportDetail | None:
         return None
     _, body = fm_body
     return ReportDetail(**meta.model_dump(), body_markdown=body)
+
+
+def update_report(report_id: str, updates: ReportUpdate) -> ReportMeta | None:
+    """更新報告欄位（title / tags / summary_line / starred）。"""
+    payload = updates.model_dump(exclude_none=True)
+    if not payload:
+        items = load_index()
+        return next((m for m in items if m.id == report_id), None)
+    updated = update_in_index(report_id, payload)
+    if updated is None:
+        return None
+    fm_body = read_report_markdown(report_id)
+    if fm_body is not None:
+        fm, body = fm_body
+        for k in ("title", "tags", "summary_line"):
+            if k in payload:
+                fm[k] = payload[k]
+        write_report_markdown(report_id, body, fm)
+    return updated
+
+
+def delete_report(report_id: str) -> bool:
+    """刪除報告檔案及 index 條目，成功回傳 True，找不到回傳 False。"""
+    return delete_report_files(report_id)
