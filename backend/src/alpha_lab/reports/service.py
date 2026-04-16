@@ -101,11 +101,6 @@ def build_portfolio_report_markdown(resp: RecommendResponse) -> tuple[str, str]:
     lines: list[str] = []
     lines.append(f"# 本次推薦組合（{resp.calc_date}）")
     lines.append("")
-    lines.append(
-        f"- generated_at: {resp.generated_at.isoformat()}"
-    )
-    lines.append(f"- calc_date: {resp.calc_date}")
-    lines.append("")
 
     total_holdings = 0
     top_style: str | None = None

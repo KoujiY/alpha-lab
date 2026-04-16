@@ -136,7 +136,8 @@ def test_recommend_save_report_writes_markdown_and_index(
     assert md_path.exists()
     md = md_path.read_text(encoding="utf-8")
     assert "本次推薦組合" in md
-    assert "calc_date: '2026-04-15'" in md or "calc_date: 2026-04-15" in md
+    assert "date: '2026-04-15'" in md or "date: 2026-04-15" in md
+    assert "Top Pick" in md
 
     index = json.loads((tmp_path / "index.json").read_text(encoding="utf-8"))
     ids = [item["id"] for item in index["reports"]]
