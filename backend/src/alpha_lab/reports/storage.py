@@ -121,3 +121,32 @@ def append_summary(iso_date: str, summary_line: str) -> None:
         json.dumps(existing, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+
+
+def delete_report_files(report_id: str) -> bool:
+    """刪 analysis/<id>.md 並從 index.json 移除。回傳是否刪到。"""
+
+    items = load_index()
+    before = len(items)
+    items = [m for m in items if m.id != report_id]
+    root = get_reports_root()
+    md_path = root / "analysis" / f"{report_id}.md"
+    if md_path.exists():
+        md_path.unlink()
+    save_index(items)
+    return len(items) < before
+
+
+def update_in_index(report_id: str, updates: dict[str, object]) -> ReportMeta | None:
+    """套 updates 到同 id 項目；None = id 不存在。回傳新 meta。"""
+
+    items = load_index()
+    target_idx = next((i for i, m in enumerate(items) if m.id == report_id), None)
+    if target_idx is None:
+        return None
+    current = items[target_idx].model_dump()
+    current.update(updates)
+    updated = ReportMeta(**current)
+    items[target_idx] = updated
+    save_index(items)
+    return updated

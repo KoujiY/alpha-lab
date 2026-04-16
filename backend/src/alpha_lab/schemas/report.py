@@ -48,3 +48,12 @@ class ReportCreate(BaseModel):
 class ReportIndex(BaseModel):
     updated_at: str
     reports: list[ReportMeta]
+
+
+class ReportUpdate(BaseModel):
+    """`PATCH /api/reports/{id}` 可改的欄位。None = 不變。"""
+
+    title: str | None = None
+    tags: list[str] | None = None
+    summary_line: str | None = None
+    starred: bool | None = None
