@@ -1,7 +1,7 @@
 ---
 domain: architecture
-updated: 2026-04-16
-related: [data-models.md, ../collectors/twse.md, ../collectors/twse-stock-info.md, ../collectors/mops.md, ../collectors/mops-cashflow.md, ../collectors/events.md, ../domain/scoring.md, ../features/portfolio/recommender.md]
+updated: 2026-04-17
+related: [data-models.md, ../collectors/twse.md, ../collectors/twse-stock-info.md, ../collectors/mops.md, ../collectors/mops-cashflow.md, ../collectors/events.md, ../domain/scoring.md, ../features/portfolio/recommender.md, ../features/reports/storage.md]
 ---
 
 # 資料流
@@ -133,3 +133,29 @@ scores
 觸發：`POST /api/jobs/collect` with `job_type='score'` 或 CLI `scripts/compute_scores.py`。
 
 詳見 [domain/scoring.md](../domain/scoring.md) 與 [features/portfolio/recommender.md](../features/portfolio/recommender.md)。
+
+## Phase 4 新增：報告寫入 / 讀取
+
+```
+POST /api/reports (ReportCreate)  |  Claude Code 分析 SOP
+  → reports/service.py::create_report
+      │  _build_report_id(type, date, subject)
+      ▼
+  reports/storage.py
+      ├─ write_report_markdown → data/reports/analysis/<id>.md（YAML frontmatter + body）
+      ├─ upsert_in_index        → data/reports/index.json（meta 去重 + date 排序）
+      └─ append_summary         → data/reports/summaries/<date>.json（list of {summary}）
+
+GET /api/reports(?type=&tag=)
+  → reports/service.py::list_reports → load_index → filter by type / tag
+
+GET /api/reports/{id}
+  → reports/service.py::get_report → load_index + read_report_markdown → ReportDetail
+```
+
+- **根目錄**：預設 `data/reports/`，環境變數 `ALPHA_LAB_REPORTS_ROOT` 可覆寫（測試 / 自訂存放點）。
+- **檔案三件組**：一份報告寫 markdown + 更新 index.json + append summary，三者一致性由 `create_report` 一次搞定。
+- **id 規則**：見 [features/reports/storage.md](../features/reports/storage.md)；破壞此規則要同步 CLAUDE.md SOP。
+- **讀取面**：前端 `/reports` 列表直接吃 `index.json` 排好的順序；細節頁才讀 markdown 檔。
+
+詳見 [features/reports/storage.md](../features/reports/storage.md)。

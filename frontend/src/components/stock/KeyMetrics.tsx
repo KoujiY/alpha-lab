@@ -26,7 +26,11 @@ export function KeyMetrics({ latestPrice, latestFinancial }: KeyMetricsProps) {
           value={eps != null ? eps.toFixed(2) : "—"}
         />
         <Metric
-          label={<TermTooltip term="PE">本益比 (PE)</TermTooltip>}
+          label={
+            <TermTooltip term="PE" l2TopicId="PE">
+              本益比 (PE)
+            </TermTooltip>
+          }
           value={pe != null ? pe.toFixed(1) : "—"}
         />
         <Metric

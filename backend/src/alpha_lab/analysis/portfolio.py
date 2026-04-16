@@ -17,6 +17,7 @@ from datetime import date
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from alpha_lab.analysis.reasons import build_reasons
 from alpha_lab.analysis.weights import STYLE_WEIGHTS, Style, weighted_total
 from alpha_lab.schemas.portfolio import Holding, Portfolio
 from alpha_lab.schemas.score import FactorBreakdown
@@ -94,20 +95,22 @@ def generate_portfolio(session: Session, style: Style, calc_date: date) -> Portf
 
     holdings: list[Holding] = []
     for (s, stk, total), w in zip(filtered, capped, strict=True):
+        breakdown = FactorBreakdown(
+            symbol=s.symbol,
+            calc_date=s.calc_date,
+            value_score=s.value_score,
+            growth_score=s.growth_score,
+            dividend_score=s.dividend_score,
+            quality_score=s.quality_score,
+            total_score=total,
+        )
         holdings.append(
             Holding(
                 symbol=stk.symbol,
                 name=stk.name,
                 weight=round(w, 4),
-                score_breakdown=FactorBreakdown(
-                    symbol=s.symbol,
-                    calc_date=s.calc_date,
-                    value_score=s.value_score,
-                    growth_score=s.growth_score,
-                    dividend_score=s.dividend_score,
-                    quality_score=s.quality_score,
-                    total_score=total,
-                ),
+                score_breakdown=breakdown,
+                reasons=build_reasons(breakdown, style),
             )
         )
 

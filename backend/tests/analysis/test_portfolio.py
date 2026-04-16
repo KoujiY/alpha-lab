@@ -44,6 +44,22 @@ def test_generate_portfolio_balanced_is_top_pick() -> None:
         assert len(p.holdings) <= 10
         assert abs(sum(h.weight for h in p.holdings) - 1.0) < 1e-3
         assert all(h.weight <= 0.30 + 1e-6 for h in p.holdings)
+        # Phase 4: 每檔 holding 至少有 style 特性句
+        assert all(len(h.reasons) >= 1 for h in p.holdings)
+        assert all(
+            "平衡組" in h.reasons[0] for h in p.holdings
+        ), "balanced 組的第一條理由應含「平衡組」字樣"
+
+
+def test_generate_portfolio_reasons_reflect_style() -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    with Session(engine) as s:
+        _seed_scores(s, 12)
+        conservative = generate_portfolio(s, "conservative", date(2026, 4, 15))
+        aggressive = generate_portfolio(s, "aggressive", date(2026, 4, 15))
+        assert "保守組" in conservative.holdings[0].reasons[0]
+        assert "積極組" in aggressive.holdings[0].reasons[0]
 
 
 def test_industry_diversification() -> None:

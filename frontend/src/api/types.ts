@@ -119,6 +119,7 @@ export interface Holding {
   name: string;
   weight: number;
   score_breakdown: FactorBreakdown;
+  reasons: string[];
 }
 
 export interface Portfolio {
@@ -135,4 +136,32 @@ export interface RecommendResponse {
   generated_at: string;
   calc_date: string;
   portfolios: Portfolio[];
+}
+
+export interface L2TopicMeta {
+  id: string;
+  title: string;
+  related_terms: string[];
+}
+
+export interface L2Topic extends L2TopicMeta {
+  body_markdown: string;
+}
+
+export type ReportType = "stock" | "portfolio" | "events" | "research";
+
+export interface ReportMeta {
+  id: string;
+  type: ReportType;
+  title: string;
+  symbols: string[];
+  tags: string[];
+  date: string;
+  path: string;
+  summary_line: string;
+  starred: boolean;
+}
+
+export interface ReportDetail extends ReportMeta {
+  body_markdown: string;
 }

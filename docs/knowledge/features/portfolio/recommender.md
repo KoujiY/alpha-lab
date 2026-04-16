@@ -1,7 +1,7 @@
 ---
 domain: features/portfolio/recommender
-updated: 2026-04-15
-related: [weights.md, ../../domain/scoring.md]
+updated: 2026-04-17
+related: [weights.md, ../../domain/scoring.md, ../education/reasons.md, ../reports/storage.md]
 ---
 
 # 組合推薦
@@ -20,6 +20,8 @@ related: [weights.md, ../../domain/scoring.md]
 - **三組**：conservative / balanced / aggressive，balanced 標 `is_top_pick=true`
 - **expected_yield**：目前 None（待股利資料接入）
 - **risk_score**：`100 - 平均 quality_score`
+- **推薦理由（Phase 4）**：每檔 `holdings[].reasons: list[str]` 由 `analysis/reasons.py::build_reasons` 依 style + 四因子分數套靜態模板產生 1-5 條中文短句；詳見 `docs/knowledge/features/education/reasons.md`
+- **儲存為報告（Phase 4）**：`POST /api/portfolios/recommend?save_report=true` 會呼叫 `reports.service.create_portfolio_report`，寫 `portfolio-<calc_date>.md` + 更新 index.json + 寫 summary。前端在 `PortfoliosPage` 右上「儲存此次推薦為報告」按鈕觸發；詳見 `docs/knowledge/features/reports/storage.md`
 
 ## 關鍵檔案
 

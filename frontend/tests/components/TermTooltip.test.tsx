@@ -5,12 +5,17 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { TermTooltip } from "@/components/TermTooltip";
+import { L2PanelProvider } from "@/components/education/L2PanelContext";
 
 function renderWithQuery(ui: ReactNode) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={client}>
+      <L2PanelProvider>{ui}</L2PanelProvider>
+    </QueryClientProvider>
+  );
 }
 
 afterEach(() => vi.restoreAllMocks());
@@ -46,5 +51,30 @@ describe("TermTooltip", () => {
     renderWithQuery(<TermTooltip term="UNKNOWN">未知詞</TermTooltip>);
     const abbr = await screen.findByText("未知詞");
     expect(abbr).toHaveAttribute("title", "UNKNOWN");
+  });
+
+  it("exposes clickable abbr and hint when l2TopicId provided", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            PE: { term: "本益比", short: "股價相對 EPS 的倍數", detail: "", related: [] },
+          }),
+          { status: 200 }
+        )
+      )
+    );
+
+    renderWithQuery(
+      <TermTooltip term="PE" l2TopicId="PE">
+        本益比
+      </TermTooltip>
+    );
+    const abbr = await screen.findByRole("button", { name: "本益比" });
+    await userEvent.hover(abbr);
+    expect(
+      await screen.findByText(/點「本益比」查看完整說明/)
+    ).toBeInTheDocument();
   });
 });

@@ -19,7 +19,12 @@
             "dividend_score": 80,
             "quality_score": 90,
             "total_score": 80
-          }
+          },
+          "reasons": [
+            "保守組配置偏好：以殖利率與體質品質為主軸，波動較低。",
+            "Dividend 80 分：殖利率優於市場，現金回饋佳。",
+            "Quality 90 分：ROE、毛利率、負債結構等體質穩健。"
+          ]
         }
       ],
       "expected_yield": 3.5,
@@ -43,7 +48,12 @@
             "dividend_score": 60,
             "quality_score": 75,
             "total_score": 71
-          }
+          },
+          "reasons": [
+            "平衡組配置偏好：Value / Growth / Dividend / Quality 四面並重。",
+            "Growth 80 分：營收或獲利成長動能強。",
+            "Quality 75 分：ROE、毛利率、負債結構等體質穩健。"
+          ]
         }
       ],
       "expected_yield": 4.0,
@@ -67,7 +77,12 @@
             "dividend_score": 40,
             "quality_score": 60,
             "total_score": 75
-          }
+          },
+          "reasons": [
+            "積極組配置偏好：優先追求營收與獲利成長動能。",
+            "Value 80 分：估值相對便宜，具安全邊際。",
+            "Growth 95 分：營收或獲利成長動能強。"
+          ]
         }
       ],
       "expected_yield": 2.5,
