@@ -1,0 +1,9 @@
+{
+  "factors": [
+    { "key": "value_score", "label": "價值 Value", "min_value": 0, "max_value": 100, "default_min": 0, "description": "PE、PB 等估值指標" },
+    { "key": "growth_score", "label": "成長 Growth", "min_value": 0, "max_value": 100, "default_min": 0, "description": "營收 YoY、EPS YoY" },
+    { "key": "dividend_score", "label": "股息 Dividend", "min_value": 0, "max_value": 100, "default_min": 0, "description": "殖利率、配息穩定度" },
+    { "key": "quality_score", "label": "品質 Quality", "min_value": 0, "max_value": 100, "default_min": 0, "description": "ROE、毛利率、負債比、FCF" },
+    { "key": "total_score", "label": "總分 Total", "min_value": 0, "max_value": 100, "default_min": 0, "description": "四因子加權平均" }
+  ]
+}

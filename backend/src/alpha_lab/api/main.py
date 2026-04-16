@@ -11,6 +11,7 @@ from alpha_lab.api.routes import (
     jobs,
     portfolios,
     reports,
+    screener,
     stocks,
 )
 from alpha_lab.storage.init_db import init_database
@@ -45,3 +46,4 @@ app.include_router(stocks.router, prefix="/api")
 app.include_router(portfolios.router, prefix="/api")
 app.include_router(education.router, prefix="/api")
 app.include_router(reports.router, prefix="/api")
+app.include_router(screener.router, prefix="/api")

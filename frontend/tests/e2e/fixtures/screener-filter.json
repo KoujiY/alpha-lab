@@ -1,0 +1,9 @@
+{
+  "calc_date": "2026-04-17",
+  "total_count": 3,
+  "stocks": [
+    { "symbol": "2330", "name": "台積電", "industry": "半導體", "value_score": 60, "growth_score": 80, "dividend_score": 50, "quality_score": 90, "total_score": 70 },
+    { "symbol": "2317", "name": "鴻海", "industry": "電子零組件", "value_score": 75, "growth_score": 50, "dividend_score": 70, "quality_score": 60, "total_score": 63.75 },
+    { "symbol": "2454", "name": "聯發科", "industry": "半導體", "value_score": 40, "growth_score": 95, "dividend_score": 30, "quality_score": 70, "total_score": 58.75 }
+  ]
+}

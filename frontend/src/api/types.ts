@@ -165,3 +165,41 @@ export interface ReportMeta {
 export interface ReportDetail extends ReportMeta {
   body_markdown: string;
 }
+
+// --- Screener ---
+
+export interface FactorMeta {
+  key: string;
+  label: string;
+  min_value: number;
+  max_value: number;
+  default_min: number;
+  description: string;
+}
+
+export interface FactorsResponse {
+  factors: FactorMeta[];
+}
+
+export interface FactorRange {
+  key: string;
+  min_value: number;
+  max_value: number;
+}
+
+export interface ScreenerStock {
+  symbol: string;
+  name: string;
+  industry: string | null;
+  value_score: number | null;
+  growth_score: number | null;
+  dividend_score: number | null;
+  quality_score: number | null;
+  total_score: number | null;
+}
+
+export interface FilterResponse {
+  calc_date: string;
+  total_count: number;
+  stocks: ScreenerStock[];
+}
