@@ -53,7 +53,7 @@ describe("TermTooltip", () => {
     expect(abbr).toHaveAttribute("title", "UNKNOWN");
   });
 
-  it("shows L2 link when l2TopicId provided", async () => {
+  it("exposes clickable abbr and hint when l2TopicId provided", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
@@ -71,10 +71,10 @@ describe("TermTooltip", () => {
         本益比
       </TermTooltip>
     );
-    const abbr = await screen.findByText("本益比");
+    const abbr = await screen.findByRole("button", { name: "本益比" });
     await userEvent.hover(abbr);
     expect(
-      await screen.findByRole("button", { name: /看完整說明/ })
+      await screen.findByText(/點「本益比」查看完整說明/)
     ).toBeInTheDocument();
   });
 });

@@ -17,7 +17,7 @@ interface TooltipPos {
 }
 
 const TOOLTIP_WIDTH = 256; // w-64 = 16rem = 256px
-const GAP = 8; // mb-2
+const GAP = 8; // 與 trigger 間距
 
 export function TermTooltip({ term, children, l2TopicId }: TermTooltipProps) {
   const { data } = useGlossary();
@@ -44,6 +44,25 @@ export function TermTooltip({ term, children, l2TopicId }: TermTooltipProps) {
     setPos({ top, left });
   }, [open]);
 
+  const handleOpenL2 = () => {
+    if (!l2TopicId) return;
+    openTopic(l2TopicId);
+    setOpen(false);
+  };
+
+  const triggerExtraProps = l2TopicId
+    ? {
+        role: "button" as const,
+        onClick: handleOpenL2,
+        onKeyDown: (e: React.KeyboardEvent<HTMLElement>) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleOpenL2();
+          }
+        },
+      }
+    : {};
+
   const tooltip =
     open && entry && pos && typeof document !== "undefined"
       ? createPortal(
@@ -62,17 +81,9 @@ export function TermTooltip({ term, children, l2TopicId }: TermTooltipProps) {
             <strong className="block mb-1">{entry.term}</strong>
             <span>{entry.short}</span>
             {l2TopicId ? (
-              <button
-                type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  openTopic(l2TopicId);
-                  setOpen(false);
-                }}
-                className="mt-2 block text-right text-xs text-sky-300 hover:text-sky-200"
-              >
-                看完整說明 →
-              </button>
+              <span className="mt-2 block text-right text-[11px] text-sky-300">
+                點「{entry.term}」查看完整說明
+              </span>
             ) : null}
           </span>,
           document.body,
@@ -90,8 +101,13 @@ export function TermTooltip({ term, children, l2TopicId }: TermTooltipProps) {
     >
       <abbr
         title={entry?.short ?? term}
-        className="underline decoration-dotted decoration-2 decoration-sky-400 underline-offset-4 cursor-help"
+        className={
+          l2TopicId
+            ? "underline decoration-dotted decoration-2 decoration-sky-400 underline-offset-4 cursor-pointer hover:text-sky-300"
+            : "underline decoration-dotted decoration-2 decoration-sky-400 underline-offset-4 cursor-help"
+        }
         tabIndex={0}
+        {...triggerExtraProps}
       >
         {children}
       </abbr>
