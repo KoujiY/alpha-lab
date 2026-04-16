@@ -97,3 +97,64 @@ def test_post_stock_missing_subject_returns_400(client: TestClient) -> None:
     )
     assert r.status_code == 400
     assert "subject" in r.json()["detail"]
+
+
+def _seed_stock(client: TestClient, symbol: str, title: str) -> str:
+    r = client.post(
+        "/api/reports",
+        json={
+            "type": "stock",
+            "title": title,
+            "body_markdown": "## body",
+            "summary_line": f"summary-{symbol}",
+            "subject": symbol,
+            "symbols": [symbol],
+            "tags": ["tag-a"],
+            "date": "2026-04-17",
+        },
+    )
+    assert r.status_code == 201, r.text
+    return str(r.json()["id"])
+
+
+def test_patch_report_toggles_starred(client: TestClient) -> None:
+    rid = _seed_stock(client, "2330", "TSMC")
+    resp = client.patch(f"/api/reports/{rid}", json={"starred": True})
+    assert resp.status_code == 200
+    assert resp.json()["starred"] is True
+
+
+def test_patch_report_unknown_returns_404(client: TestClient) -> None:
+    resp = client.patch("/api/reports/nope", json={"starred": True})
+    assert resp.status_code == 404
+
+
+def test_delete_report_returns_204(client: TestClient) -> None:
+    rid = _seed_stock(client, "2330", "TSMC")
+    resp = client.delete(f"/api/reports/{rid}")
+    assert resp.status_code == 204
+    assert client.get(f"/api/reports/{rid}").status_code == 404
+
+
+def test_delete_report_unknown_returns_404(client: TestClient) -> None:
+    resp = client.delete("/api/reports/nope")
+    assert resp.status_code == 404
+
+
+def test_list_reports_search_query(client: TestClient) -> None:
+    _seed_stock(client, "2330", "TSMC 分析")
+    _seed_stock(client, "2317", "鴻海深度")
+    resp = client.get("/api/reports", params={"q": "2330"})
+    assert resp.status_code == 200
+    items = resp.json()
+    assert len(items) == 1
+    assert items[0]["symbols"] == ["2330"]
+
+
+def test_list_reports_symbol_filter(client: TestClient) -> None:
+    _seed_stock(client, "2330", "TSMC")
+    _seed_stock(client, "2317", "HHP")
+    resp = client.get("/api/reports", params={"symbol": "2330"})
+    assert resp.status_code == 200
+    items = resp.json()
+    assert len(items) == 1
