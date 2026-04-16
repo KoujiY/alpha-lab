@@ -1,10 +1,10 @@
 ---
 domain: features/reports/storage
-updated: 2026-04-17
-related: [../../architecture/data-flow.md, ../portfolio/recommender.md]
+updated: 2026-04-16
+related: [../../architecture/data-flow.md, ../portfolio/recommender.md, viewer.md]
 ---
 
-# Reports 儲存層（Phase 4）
+# Reports 儲存層（Phase 4 / Phase 6 擴充）
 
 ## 目的
 
@@ -24,14 +24,21 @@ related: [../../architecture/data-flow.md, ../portfolio/recommender.md]
   - `events` → `events-<YYYY-MM-DD>`
   - 同一 id 再寫會覆寫 markdown、**index 去重**（保留最新一筆）
 - **排序**：`index.json` 內 `reports` 以 `(date, id)` 降冪排列，便於前端直接渲染列表
+- **Phase 6 擴充**：
+  - `ReportMeta.starred: bool`（預設 `False`），`ReportUpdate` schema 允許 PATCH `title / tags / summary_line / starred`
+  - `list_reports(type_filter, tag_filter, symbol, query)` — `symbol` 精準比對 `symbols` 陣列；`query` 小寫比對 `title / summary_line / symbols / tags`
+  - `update_report(id, ReportUpdate)` — 同時更新 index 與 markdown frontmatter，維持一致
+  - `delete_report(id)` — 移除 markdown 檔 + index 條目（summaries 不回溯刪除）
+  - 路由端：`PATCH /api/reports/{id}`、`DELETE /api/reports/{id}`；`GET /api/reports` 新增 `symbol` / `q` query params
 
 ## 關鍵檔案
 
-- [backend/src/alpha_lab/schemas/report.py](../../../backend/src/alpha_lab/schemas/report.py) — `ReportType` / `ReportMeta` / `ReportDetail` / `ReportCreate`
-- [backend/src/alpha_lab/reports/storage.py](../../../backend/src/alpha_lab/reports/storage.py) — 低階 I/O：`get_reports_root`、`load_index`、`save_index`、`upsert_in_index`、`write_report_markdown`、`read_report_markdown`、`append_summary`
-- [backend/src/alpha_lab/reports/service.py](../../../backend/src/alpha_lab/reports/service.py) — 高階 API：`create_report` / `list_reports` / `get_report`，`_build_report_id` 封裝 id 組裝規則
-- [backend/src/alpha_lab/api/routes/reports.py](../../../backend/src/alpha_lab/api/routes/reports.py) — `GET /api/reports`、`GET /api/reports/{id}`、`POST /api/reports`
-- [backend/tests/reports/test_storage.py](../../../backend/tests/reports/test_storage.py) — storage/service 單測
+- [backend/src/alpha_lab/schemas/report.py](../../../backend/src/alpha_lab/schemas/report.py) — `ReportType` / `ReportMeta` / `ReportDetail` / `ReportCreate` / `ReportUpdate`
+- [backend/src/alpha_lab/reports/storage.py](../../../backend/src/alpha_lab/reports/storage.py) — 低階 I/O：`get_reports_root`、`load_index`、`save_index`、`upsert_in_index`、`update_in_index`、`delete_report_files`、`write_report_markdown`、`read_report_markdown`、`append_summary`
+- [backend/src/alpha_lab/reports/service.py](../../../backend/src/alpha_lab/reports/service.py) — 高階 API：`create_report` / `list_reports` / `get_report` / `update_report` / `delete_report`，`_build_report_id` 封裝 id 組裝規則
+- [backend/src/alpha_lab/api/routes/reports.py](../../../backend/src/alpha_lab/api/routes/reports.py) — `GET /api/reports`、`GET /api/reports/{id}`、`POST /api/reports`、`PATCH /api/reports/{id}`、`DELETE /api/reports/{id}`
+- [backend/tests/reports/test_storage.py](../../../backend/tests/reports/test_storage.py) — storage 低階 I/O 單測
+- [backend/tests/reports/test_service.py](../../../backend/tests/reports/test_service.py) — service 層 update/delete/search 單測
 - [backend/tests/api/test_reports.py](../../../backend/tests/api/test_reports.py) — API 路由整合測試
 
 ## 修改時注意事項
@@ -41,3 +48,6 @@ related: [../../architecture/data-flow.md, ../portfolio/recommender.md]
 - **檔案側效**：`create_report` 會同時寫 3 個地方（markdown / index / summary）；改流程要一起測 roundtrip。
 - **寫入不 atomic**：若日後有併發寫入需求，要改走 write-temp-then-rename 或加鎖；目前單人工具足矣。
 - **frontmatter 要穩**：若前端或 Claude 以 regex 讀 frontmatter，欄位順序由 `service.create_report` 的 dict 決定（`sort_keys=False`），改 dict 時要考慮對下游的影響。
+- **PATCH 與 frontmatter 同步**：`update_report` 會同時寫 index 與 markdown frontmatter，新增可改欄位時兩邊邏輯要一起改，否則會有 drift。
+- **DELETE 不回溯 summaries**：`summaries/<date>.json` 目前只 append 不刪，刪除個別報告不會回頭清掉當天摘要行；若日後要做「完全乾淨」刪除，要補 summaries 的 rebuild 流程。
+- **搜尋策略目前是 O(n) in-memory**：`list_reports` 走 Python list comprehension 全量過濾，報告量超過數千筆後再考慮 Phase 6/7 規劃的 lunr/flexsearch 或 SQLite FTS。

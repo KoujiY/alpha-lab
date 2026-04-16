@@ -110,7 +110,12 @@ REM   POST /api/reports 帶 type=stock/research/portfolio/events + body_markdown
 **回顧**：
 
 - Header 點「回顧」→ `/reports`，列表以 type 過濾（全部 / 個股 / 組合 / 事件 / 研究）
+- 頁面上方有搜尋欄，可依「標題 / 摘要 / 標籤 / 代號」即時篩選；搜尋與 type 過濾可組合
 - 點卡片進細節頁，Markdown 以 react-markdown + remark-gfm 渲染（支援表格、程式區塊、清單）
+- **管理動作**（Phase 6）：
+  - ☆ / ★ 收藏切換（列表卡片與詳情頁皆可）
+  - 刪除（會跳出 `window.confirm` 確認；詳情頁刪除後自動返回列表）
+  - 未來 Phase 8 UI 升級會把這些按鈕改為 icon button，操作語意不變
 - 檔案實體路徑：
   - `data/reports/analysis/<id>.md` — frontmatter + body
   - `data/reports/index.json` — meta 索引（前端列表直接吃這個）

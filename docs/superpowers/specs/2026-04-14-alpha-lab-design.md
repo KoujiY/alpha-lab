@@ -469,7 +469,7 @@ GET /api/glossary/K線
 | 5 | ✅ 完成（2026-04-17） | 功能 B：選股篩選器 | `POST /api/screener/filter`、`GET /api/screener/factors`、`/screener` 頁面（因子滑桿 + 可排序結果表格 + 409 引導提示）；`apiPost` 擴充 JSON body 支援 |
 | 6 | 未開始 | 功能 D + 報告管理 + 教學開關 | 組合追蹤（`portfolios_saved`、`portfolio_snapshots` 表、`GET/POST /portfolios/saved`、`GET /saved/{id}/performance`、`/portfolios/:id` 追蹤頁）、績效計算、報告管理（`PATCH /reports/{id}` 加星/改標籤、`DELETE /reports/{id}`）、報告全文搜尋 / 離線快取、教學三段密度開關（`TutorialModeContext` + 右上角快捷切換）、個股頁「收藏」「加入組合」按鈕 + 「相關分析報告」區塊 |
 | 7 | 未開始 | 數據源與自動化 | Yahoo Finance 備援數據源、新聞彙整（每週掃描）、每日自動簡報（`data/reports/daily/`）、`data/processed/` 計算後指標 |
-| 8 | 未開始 | UI 升級 | shadcn/ui 元件庫遷移、K 線圖改用 lightweight-charts |
+| 8 | 未開始 | UI 升級 | shadcn/ui 元件庫遷移、K 線圖改用 lightweight-charts、列表 / 卡片 / 詳情頁的動作按鈕（收藏 ☆★、刪除、編輯等）一律改用 icon button（搭 `aria-label` + hover tooltip；`data-testid` 保留不變以維持 E2E） |
 | 9 | 未開始 | 頁面擴充 | `/stocks` 股票瀏覽列表頁、`/settings` 設定頁（localStorage 偏好管理）、回顧時間軸瀏覽模式 |
 
 **Phase 1 vs 1.5 切分理由**：Phase 1 先打通「抓取 → 落庫 → API 觸發」的核心管線，驗證 job 系統與資料流設計正確；季報、事件等複雜度高的 collector 放 Phase 1.5。schema 一次定義完整（Phase 1 建表涵蓋 1.5 的欄位），避免之後重構。
