@@ -1,4 +1,4 @@
-export type JobType = "twse_prices" | "mops_revenue";
+export type JobType = "twse_prices" | "twse_prices_batch" | "mops_revenue";
 
 export type JobStatus = "pending" | "running" | "completed" | "failed";
 
@@ -245,4 +245,11 @@ export interface PerformanceResponse {
   points: PerformancePoint[];
   latest_nav: number;
   total_return: number;
+}
+
+export interface BaseDateProbe {
+  target_date: string;
+  resolved_date: string | null;
+  today_available: boolean;
+  missing_today_symbols: string[];
 }

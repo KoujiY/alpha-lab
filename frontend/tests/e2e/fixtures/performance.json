@@ -1,0 +1,21 @@
+{
+  "portfolio": {
+    "id": 1,
+    "style": "balanced",
+    "label": "平衡組 2026-04-17",
+    "note": null,
+    "base_date": "2026-04-17",
+    "created_at": "2026-04-17T00:00:00Z",
+    "holdings_count": 2,
+    "holdings": [
+      {"symbol": "2330", "name": "台積電", "weight": 0.6, "base_price": 600},
+      {"symbol": "2317", "name": "鴻海", "weight": 0.4, "base_price": 100}
+    ]
+  },
+  "points": [
+    {"date": "2026-04-17", "nav": 1.0, "daily_return": null},
+    {"date": "2026-04-18", "nav": 1.05, "daily_return": 0.05}
+  ],
+  "latest_nav": 1.05,
+  "total_return": 0.05
+}

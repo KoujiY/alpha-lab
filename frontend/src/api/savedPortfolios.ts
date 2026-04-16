@@ -1,5 +1,6 @@
 import { apiDelete, apiGet, apiPost } from "@/api/client";
 import type {
+  BaseDateProbe,
   PerformanceResponse,
   SavedPortfolioCreate,
   SavedPortfolioDetail,
@@ -16,8 +17,10 @@ export function getSavedPortfolio(id: number): Promise<SavedPortfolioDetail> {
 
 export function saveRecommendedPortfolio(
   payload: SavedPortfolioCreate,
+  options?: { allowFallback?: boolean },
 ): Promise<SavedPortfolioMeta> {
-  return apiPost<SavedPortfolioMeta>("/api/portfolios/saved", undefined, payload);
+  const params = options?.allowFallback ? { allow_fallback: "true" } : undefined;
+  return apiPost<SavedPortfolioMeta>("/api/portfolios/saved", params, payload);
 }
 
 export function deleteSavedPortfolio(id: number): Promise<void> {
@@ -26,4 +29,9 @@ export function deleteSavedPortfolio(id: number): Promise<void> {
 
 export function fetchPerformance(id: number): Promise<PerformanceResponse> {
   return apiGet<PerformanceResponse>(`/api/portfolios/saved/${id}/performance`);
+}
+
+export function probeBaseDate(symbols: string[]): Promise<BaseDateProbe> {
+  const query = encodeURIComponent(symbols.join(","));
+  return apiGet<BaseDateProbe>(`/api/portfolios/saved/probe?symbols=${query}`);
 }
