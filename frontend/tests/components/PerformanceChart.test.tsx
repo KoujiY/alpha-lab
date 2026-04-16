@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildChartSeries } from "@/components/portfolio/PerformanceChart";
+import { buildChartSeries } from "@/components/portfolio/performanceChartSeries";
 
 describe("buildChartSeries", () => {
   it("returns self-only series when parent info absent", () => {
