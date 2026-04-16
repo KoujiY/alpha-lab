@@ -465,7 +465,7 @@ GET /api/glossary/K線
 | 1.5 | ✅ 完成（2026-04-15） | 數據抓取擴充 | 三大法人、融資融券、季報（合併損益/資產負債）、重大訊息 collectors[^phase15-cashflow] |
 | 2 | ✅ 完成（2026-04-15） | 功能 A | 個股頁、術語 Tooltip 基礎、術語庫 v1 |
 | 3 | ✅ 完成（2026-04-16） | 功能 C | 多因子評分引擎（Value/Growth/Dividend/Quality）、MOPS 現金流 collector（FCF）、組合推薦 API、`/portfolios` 頁面與個股頁雷達圖 |
-| 4 | 未開始 | 功能 E | 推薦理由、L2 詳解面板、報告儲存、回顧模式；附帶補 TWSE 產業代碼→中文名稱映射表（Pre-Phase 4 Step 0 遺留） |
+| 4 | ✅ 完成（2026-04-17） | 功能 E | 推薦理由靜態模板、L2 詳解側邊面板（5 個初始 topic）、報告儲存後端（`data/reports/`、`index.json`、summaries）、`/reports` 回顧列表與細節頁、「儲存此次推薦為報告」按鈕；TWSE 產業代碼→中文名稱映射表留待 Phase 5/6 再補 |
 | 5 | 未開始 | 功能 B | 選股篩選器 |
 | 6 | 未開始 | 功能 D | 組合追蹤、績效計算 |
 | 7（預留） | 未開始 | Claude API 整合 | `backend/ai/` 實作 |
