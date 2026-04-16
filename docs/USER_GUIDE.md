@@ -121,6 +121,18 @@ REM   POST /api/reports 帶 type=stock/research/portfolio/events + body_markdown
   - `data/reports/index.json` — meta 索引（前端列表直接吃這個）
   - `data/reports/summaries/<date>.json` — 當日每份報告一行摘要
 
+### 教學密度切換（Phase 6）✅
+
+右上角 header 有一顆 toggle 按鈕，依序循環三段：
+
+| 模式 | 顯示 | 行為 |
+|------|------|------|
+| 📖 完整教學 | 預設 | 術語 hover 出 tooltip、點擊進 L2 詳解；推薦組合顯示「查看理由」欄 |
+| 📗 精簡 | 中階 | 術語不出 tooltip，但仍可點擊進 L2；「查看理由」欄保留 |
+| 📕 關閉 | 熟手 | 術語完全不標示、不可互動；「查看理由」欄隱藏 |
+
+偏好存在 `localStorage['alpha-lab:tutorial-mode']`，換頁 / 重整保留。未來 Phase 8 UI 升級會把這顆文字 toggle 改成 icon button。
+
 ### 選股篩選器（Phase 5）✅
 
 Header 點「選股篩選」進 `/screener`，可依四因子分數篩選候選股：
