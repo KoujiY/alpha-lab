@@ -144,3 +144,129 @@ def test_probe_endpoint_reports_today_status():
     assert "missing_today_symbols" in body
     assert "resolved_date" in body
     assert "target_date" in body
+
+
+def test_post_saved_with_parent_creates_lineage():
+    _seed_prices()
+    client = TestClient(app)
+    parent_payload = {
+        "style": "balanced",
+        "label": "parent",
+        "holdings": [
+            {"symbol": "2330", "name": "台積電", "weight": 1.0, "base_price": 600.0}
+        ],
+    }
+    parent_id = client.post("/api/portfolios/saved", json=parent_payload).json()["id"]
+
+    child_payload = {
+        "style": "balanced",
+        "label": "child",
+        "holdings": [
+            {"symbol": "2330", "name": "台積電", "weight": 1.0, "base_price": 600.0}
+        ],
+        "parent_id": parent_id,
+    }
+    resp = client.post("/api/portfolios/saved", json=child_payload)
+    assert resp.status_code == 201
+    meta = resp.json()
+    assert meta["parent_id"] == parent_id
+    assert meta["parent_nav_at_fork"] == pytest.approx(1.0)
+
+
+def test_post_saved_rejects_unknown_parent_id():
+    _seed_prices()
+    client = TestClient(app)
+    resp = client.post(
+        "/api/portfolios/saved",
+        json={
+            "style": "balanced",
+            "label": "orphan",
+            "holdings": [
+                {"symbol": "2330", "name": "台積電", "weight": 1.0, "base_price": 600.0}
+            ],
+            "parent_id": 999,
+        },
+    )
+    assert resp.status_code == 400
+    assert "parent portfolio" in resp.json()["detail"]
+
+
+def test_post_saved_rejects_duplicate_symbol():
+    _seed_prices()
+    client = TestClient(app)
+    resp = client.post(
+        "/api/portfolios/saved",
+        json={
+            "style": "balanced",
+            "label": "dup",
+            "holdings": [
+                {"symbol": "2330", "name": "台積電", "weight": 0.5, "base_price": 600.0},
+                {"symbol": "2330", "name": "台積電", "weight": 0.5, "base_price": 600.0},
+            ],
+        },
+    )
+    assert resp.status_code == 422  # Pydantic validation error
+
+
+def test_post_saved_rejects_weights_not_summing_to_one():
+    _seed_prices()
+    client = TestClient(app)
+    resp = client.post(
+        "/api/portfolios/saved",
+        json={
+            "style": "balanced",
+            "label": "bad-sum",
+            "holdings": [
+                {"symbol": "2330", "name": "台積電", "weight": 0.8, "base_price": 600.0},
+            ],
+        },
+    )
+    assert resp.status_code == 422
+
+
+def test_performance_returns_parent_points_when_forked():
+    # 透過 HTTP 測試時 parent / child 的 base_date 都來自 `date.today()`，因此
+    # 兩者相同。parent_points 實際值為空 list（非 None），但 parent_nav_at_fork
+    # 會紀錄 parent latest NAV。service-level 測試負責驗證跨日期的過濾邏輯
+    # （見 test_service.py::test_compute_performance_returns_parent_points_when_forked）。
+    _seed_prices()
+    client = TestClient(app)
+    parent_id = client.post(
+        "/api/portfolios/saved",
+        json={
+            "style": "balanced",
+            "label": "parent",
+            "holdings": [
+                {"symbol": "2330", "name": "台積電", "weight": 1.0, "base_price": 600.0}
+            ],
+        },
+    ).json()["id"]
+    with session_scope() as session:
+        session.merge(
+            PriceDaily(
+                symbol="2330",
+                trade_date=date(2026, 4, 18),
+                open=660.0,
+                high=660.0,
+                low=660.0,
+                close=660.0,
+                volume=1000,
+            )
+        )
+    child_id = client.post(
+        "/api/portfolios/saved",
+        json={
+            "style": "balanced",
+            "label": "child",
+            "holdings": [
+                {"symbol": "2330", "name": "台積電", "weight": 1.0, "base_price": 660.0}
+            ],
+            "parent_id": parent_id,
+        },
+    ).json()["id"]
+    perf = client.get(f"/api/portfolios/saved/{child_id}/performance").json()
+    # parent latest NAV 於 child 建立時為 1.10（04-18 @ 660 / 600）
+    assert perf["parent_nav_at_fork"] == pytest.approx(1.10, rel=1e-4)
+    # HTTP 路徑 parent/child base_date 同為 today，parent_points filter 結果為空
+    assert perf["parent_points"] is not None
+    assert isinstance(perf["parent_points"], list)

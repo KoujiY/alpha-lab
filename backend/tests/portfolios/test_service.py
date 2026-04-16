@@ -21,7 +21,7 @@ from alpha_lab.portfolios.service import (
 from alpha_lab.schemas.saved_portfolio import SavedHolding, SavedPortfolioCreate
 from alpha_lab.storage import engine as engine_module
 from alpha_lab.storage.engine import session_scope
-from alpha_lab.storage.models import Base, PriceDaily, Stock
+from alpha_lab.storage.models import Base, PriceDaily, SavedPortfolio, Stock
 
 
 def _make_test_engine() -> Engine:
@@ -270,3 +270,156 @@ def test_probe_base_date_returns_none_when_no_history(sample_prices):
     resolved, missing = probe_base_date(["9999"], date(2026, 4, 17))
     assert resolved is None
     assert missing == ["9999"]
+
+
+def test_save_portfolio_with_parent_stores_lineage(sample_prices):
+    parent = save_portfolio(
+        SavedPortfolioCreate(
+            style="balanced",
+            label="parent",
+            holdings=[SavedHolding(symbol="2330", name="台積電", weight=1.0, base_price=600.0)],
+        ),
+        base_date=date(2026, 4, 17),
+    )
+    # parent 當下 latest_nav（僅 base_date 一個 point）= 1.0
+    child = save_portfolio(
+        SavedPortfolioCreate(
+            style="balanced",
+            label="child",
+            holdings=[
+                SavedHolding(symbol="2330", name="台積電", weight=0.6, base_price=600.0),
+                SavedHolding(symbol="2317", name="鴻海", weight=0.4, base_price=100.0),
+            ],
+            parent_id=parent.id,
+        ),
+        base_date=date(2026, 4, 17),
+    )
+    detail = get_saved(child.id)
+    assert detail is not None
+    assert detail.parent_id == parent.id
+    assert detail.parent_nav_at_fork == pytest.approx(1.0)
+
+
+def test_save_portfolio_with_nonexistent_parent_raises(sample_prices):
+    with pytest.raises(ValueError, match=r"parent portfolio .* not found"):
+        save_portfolio(
+            SavedPortfolioCreate(
+                style="balanced",
+                label="orphan",
+                holdings=[
+                    SavedHolding(symbol="2330", name="台積電", weight=1.0, base_price=600.0)
+                ],
+                parent_id=99999,
+            ),
+            base_date=date(2026, 4, 17),
+        )
+
+
+def test_save_portfolio_parent_nav_snapshot_reflects_latest_prices(sample_prices):
+    # 先建 parent，再給 parent 的後續交易日加價，driven parent latest_nav
+    parent = save_portfolio(
+        SavedPortfolioCreate(
+            style="balanced",
+            label="p2",
+            holdings=[SavedHolding(symbol="2330", name="台積電", weight=1.0, base_price=600.0)],
+        ),
+        base_date=date(2026, 4, 17),
+    )
+    with session_scope() as session:
+        session.merge(
+            PriceDaily(
+                symbol="2330",
+                trade_date=date(2026, 4, 18),
+                open=660.0, high=660.0, low=660.0, close=660.0,
+                volume=1000,
+            )
+        )
+
+    child = save_portfolio(
+        SavedPortfolioCreate(
+            style="balanced",
+            label="c2",
+            holdings=[SavedHolding(symbol="2330", name="台積電", weight=1.0, base_price=660.0)],
+            parent_id=parent.id,
+        ),
+        base_date=date(2026, 4, 18),
+    )
+    detail = get_saved(child.id)
+    assert detail is not None
+    # parent 從 600 -> 660 = 1.10
+    assert detail.parent_nav_at_fork == pytest.approx(1.10, rel=1e-4)
+
+
+def test_compute_performance_returns_parent_points_when_forked(sample_prices):
+    # parent: 4/17 買入 2330@600，4/18 -> 660（NAV 1.10）
+    # child: 4/18 fork，parent_nav_at_fork=1.10
+    with session_scope() as session:
+        session.merge(
+            PriceDaily(
+                symbol="2330", trade_date=date(2026, 4, 18),
+                open=660.0, high=660.0, low=660.0, close=660.0, volume=1000,
+            )
+        )
+    parent = save_portfolio(
+        SavedPortfolioCreate(
+            style="balanced", label="parent",
+            holdings=[SavedHolding(symbol="2330", name="台積電", weight=1.0, base_price=600.0)],
+        ),
+        base_date=date(2026, 4, 17),
+    )
+    child = save_portfolio(
+        SavedPortfolioCreate(
+            style="balanced", label="child",
+            holdings=[SavedHolding(symbol="2330", name="台積電", weight=1.0, base_price=660.0)],
+            parent_id=parent.id,
+        ),
+        base_date=date(2026, 4, 18),
+    )
+    resp = compute_performance(child.id)
+    assert resp is not None
+    assert resp.parent_nav_at_fork == pytest.approx(1.10, rel=1e-4)
+    # parent_points 應該只含 < 4/18 的日期（即 4/17）
+    assert resp.parent_points is not None
+    assert len(resp.parent_points) == 1
+    assert resp.parent_points[0].date == date(2026, 4, 17)
+    assert resp.parent_points[0].nav == pytest.approx(1.0)
+
+
+def test_compute_performance_without_parent_has_no_parent_points(sample_prices):
+    meta = save_portfolio(
+        SavedPortfolioCreate(
+            style="balanced", label="solo",
+            holdings=[SavedHolding(symbol="2330", name="台積電", weight=1.0, base_price=600.0)],
+        ),
+        base_date=date(2026, 4, 17),
+    )
+    resp = compute_performance(meta.id)
+    assert resp is not None
+    assert resp.parent_points is None
+    assert resp.parent_nav_at_fork is None
+
+
+def test_compute_performance_raises_on_parent_cycle(sample_prices):
+    # 建兩個組合，用 session 手動把 parent_id 改成互指，模擬人為錯誤寫入
+    a = save_portfolio(
+        SavedPortfolioCreate(
+            style="balanced", label="a",
+            holdings=[SavedHolding(symbol="2330", name="台積電", weight=1.0, base_price=600.0)],
+        ),
+        base_date=date(2026, 4, 17),
+    )
+    b = save_portfolio(
+        SavedPortfolioCreate(
+            style="balanced", label="b",
+            holdings=[SavedHolding(symbol="2330", name="台積電", weight=1.0, base_price=600.0)],
+            parent_id=a.id,
+        ),
+        base_date=date(2026, 4, 17),
+    )
+    with session_scope() as session:
+        row_a = session.get(SavedPortfolio, a.id)
+        assert row_a is not None
+        row_a.parent_id = b.id  # a -> b -> a 形成 cycle
+
+    with pytest.raises(ValueError, match="parent cycle detected"):
+        compute_performance(b.id)
