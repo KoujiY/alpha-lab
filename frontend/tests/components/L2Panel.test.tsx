@@ -5,10 +5,8 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { L2Panel } from "@/components/education/L2Panel";
-import {
-  L2PanelProvider,
-  useL2Panel,
-} from "@/components/education/L2PanelContext";
+import { useL2Panel } from "@/components/education/L2PanelContext";
+import { L2PanelProvider } from "@/components/education/L2PanelProvider";
 
 function Wrapper({ children }: { children: ReactNode }) {
   const client = new QueryClient({

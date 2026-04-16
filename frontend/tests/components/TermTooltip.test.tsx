@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { TermTooltip } from "@/components/TermTooltip";
-import { L2PanelProvider } from "@/components/education/L2PanelContext";
+import { L2PanelProvider } from "@/components/education/L2PanelProvider";
 
 function renderWithQuery(ui: ReactNode) {
   const client = new QueryClient({
