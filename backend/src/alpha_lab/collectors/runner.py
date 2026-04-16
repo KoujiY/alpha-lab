@@ -81,6 +81,7 @@ def upsert_daily_prices(session: Session, rows: list[DailyPrice]) -> int:
                     low=row.low,
                     close=row.close,
                     volume=row.volume,
+                    source=row.source,
                 )
             )
         else:
@@ -89,6 +90,8 @@ def upsert_daily_prices(session: Session, rows: list[DailyPrice]) -> int:
             existing.low = row.low
             existing.close = row.close
             existing.volume = row.volume
+            if row.source is not None:
+                existing.source = row.source
         count += 1
     return count
 

@@ -80,6 +80,7 @@ async def fetch_daily_prices(symbol: str, year_month: date) -> list[DailyPrice]:
                 low=_parse_float(row[5]),
                 close=_parse_float(row[6]),
                 volume=_parse_int(row[1]),
+                source="twse",
             )
         )
     return results
