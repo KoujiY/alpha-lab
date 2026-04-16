@@ -37,6 +37,18 @@ export async function apiPost<T>(
   return response.json() as Promise<T>;
 }
 
+export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(`API error: ${await readErrorDetail(response)}`);
+  }
+  return response.json() as Promise<T>;
+}
+
 export async function apiDelete(path: string): Promise<void> {
   const response = await fetch(`${API_BASE}${path}`, { method: "DELETE" });
   if (!response.ok) {

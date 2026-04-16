@@ -4,7 +4,14 @@ import { getReport, listReports, type ListReportsParams } from "@/api/reports";
 
 export function useReports(params?: ListReportsParams) {
   return useQuery({
-    queryKey: ["reports", "list", params?.type ?? null, params?.tag ?? null],
+    queryKey: [
+      "reports",
+      "list",
+      params?.type ?? null,
+      params?.tag ?? null,
+      params?.symbol ?? null,
+      params?.query ?? null,
+    ],
     queryFn: () => listReports(params),
     staleTime: 30 * 1000,
   });

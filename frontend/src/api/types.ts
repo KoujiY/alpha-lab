@@ -166,6 +166,13 @@ export interface ReportDetail extends ReportMeta {
   body_markdown: string;
 }
 
+export interface ReportUpdate {
+  title?: string;
+  tags?: string[];
+  summary_line?: string;
+  starred?: boolean;
+}
+
 // --- Screener ---
 
 export interface FactorMeta {

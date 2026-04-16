@@ -11,9 +11,11 @@ const TYPE_BADGE: Record<ReportMeta["type"], { label: string; className: string 
 
 export interface ReportCardProps {
   meta: ReportMeta;
+  onToggleStar?: (id: string, nextStarred: boolean) => void;
+  onDelete?: (id: string) => void;
 }
 
-export function ReportCard({ meta }: ReportCardProps) {
+export function ReportCard({ meta, onToggleStar, onDelete }: ReportCardProps) {
   const badge = TYPE_BADGE[meta.type];
   return (
     <li className="rounded border border-slate-800 bg-slate-900/60 p-4 hover:border-slate-600">
@@ -39,6 +41,31 @@ export function ReportCard({ meta }: ReportCardProps) {
           </div>
         ) : null}
       </Link>
+      {(onToggleStar ?? onDelete) ? (
+        <div className="mt-3 flex items-center justify-end gap-2 border-t border-slate-800 pt-2">
+          {onToggleStar ? (
+            <button
+              type="button"
+              onClick={() => onToggleStar(meta.id, !meta.starred)}
+              data-testid="star-toggle"
+              aria-label={meta.starred ? "取消加星" : "加星"}
+              className="text-base"
+            >
+              {meta.starred ? "★" : "☆"}
+            </button>
+          ) : null}
+          {onDelete ? (
+            <button
+              type="button"
+              onClick={() => onDelete(meta.id)}
+              data-testid="delete-report"
+              className="text-xs text-red-400 hover:text-red-300"
+            >
+              刪除
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </li>
   );
 }
