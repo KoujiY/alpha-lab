@@ -2,6 +2,7 @@ import {
   CartesianGrid,
   Line,
   LineChart,
+  ReferenceDot,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -15,6 +16,7 @@ interface PerformanceChartProps {
   points: PerformancePoint[];
   parentPoints?: PerformancePoint[] | null;
   parentNavAtFork?: number | null;
+  childBaseDate?: string | null;
 }
 
 interface ChartRow {
@@ -27,6 +29,7 @@ interface BuildArgs {
   points: PerformancePoint[];
   parentPoints: PerformancePoint[] | null | undefined;
   parentNavAtFork: number | null | undefined;
+  childBaseDate: string | null | undefined;
 }
 
 interface BuildResult {
@@ -35,12 +38,14 @@ interface BuildResult {
 }
 
 export function buildChartSeries(args: BuildArgs): BuildResult {
-  const { points, parentPoints, parentNavAtFork } = args;
+  const { points, parentPoints, parentNavAtFork, childBaseDate } = args;
   const hasParent =
     parentPoints != null &&
     parentPoints.length > 0 &&
     parentNavAtFork != null &&
-    Number.isFinite(parentNavAtFork);
+    Number.isFinite(parentNavAtFork) &&
+    childBaseDate != null &&
+    childBaseDate.length > 0;
   const scale = hasParent ? (parentNavAtFork as number) : 1;
 
   const rows: ChartRow[] = [];
@@ -48,22 +53,19 @@ export function buildChartSeries(args: BuildArgs): BuildResult {
     for (const p of parentPoints as PerformancePoint[]) {
       rows.push({ date: p.date, parent: p.nav, self: null });
     }
+    rows.push({
+      date: childBaseDate as string,
+      parent: scale,
+      self: scale,
+    });
   }
 
-  if (points.length === 0) {
-    return { rows, forkDate: null };
+  for (const p of points) {
+    if (hasParent && p.date === childBaseDate) continue;
+    rows.push({ date: p.date, parent: null, self: p.nav * scale });
   }
 
-  const forkDate = hasParent ? points[0].date : null;
-  for (let i = 0; i < points.length; i += 1) {
-    const p = points[i];
-    const selfNav = p.nav * scale;
-    if (i === 0 && hasParent) {
-      rows.push({ date: p.date, parent: scale, self: selfNav });
-    } else {
-      rows.push({ date: p.date, parent: null, self: selfNav });
-    }
-  }
+  const forkDate = hasParent ? (childBaseDate as string) : null;
   return { rows, forkDate };
 }
 
@@ -71,6 +73,7 @@ export function PerformanceChart({
   points,
   parentPoints = null,
   parentNavAtFork = null,
+  childBaseDate = null,
 }: PerformanceChartProps) {
   if (points.length === 0 && (!parentPoints || parentPoints.length === 0)) {
     return <p className="text-slate-400 text-sm">尚無績效資料</p>;
@@ -79,6 +82,7 @@ export function PerformanceChart({
     points,
     parentPoints,
     parentNavAtFork,
+    childBaseDate,
   });
   return (
     <div className="h-64 w-full" data-testid="performance-chart">
@@ -99,6 +103,17 @@ export function PerformanceChart({
               stroke="#f59e0b"
               strokeDasharray="4 4"
               label={{ value: "fork", fill: "#f59e0b", position: "top" }}
+            />
+          ) : null}
+          {forkDate && parentNavAtFork != null ? (
+            <ReferenceDot
+              x={forkDate}
+              y={parentNavAtFork}
+              r={4}
+              fill="#38bdf8"
+              stroke="#0f172a"
+              strokeWidth={2}
+              ifOverflow="visible"
             />
           ) : null}
           {parentPoints && parentPoints.length > 0 ? (

@@ -123,6 +123,7 @@ export function PortfolioTrackingPage() {
           points={points}
           parentPoints={parent_points}
           parentNavAtFork={parent_nav_at_fork}
+          childBaseDate={portfolio.base_date}
         />
       </section>
 
