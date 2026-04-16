@@ -1,6 +1,7 @@
 import { Link, Outlet } from "react-router-dom";
 
 import { HeaderSearch } from "@/components/HeaderSearch";
+import { NavUpdatePricesButton } from "@/components/NavUpdatePricesButton";
 import { TutorialModeToggle } from "@/components/TutorialModeToggle";
 import { L2Panel } from "@/components/education/L2Panel";
 import { L2PanelProvider } from "@/components/education/L2PanelProvider";
@@ -37,6 +38,7 @@ export function AppLayout() {
             </div>
             <div className="flex items-center gap-3">
               <HeaderSearch />
+              <NavUpdatePricesButton />
               <TutorialModeToggle />
             </div>
           </header>
