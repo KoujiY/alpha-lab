@@ -1,7 +1,7 @@
 ---
 domain: features/tracking
 updated: 2026-04-17
-related: [../portfolio/recommender.md, ../../architecture/data-models.md, ../../architecture/data-flow.md]
+related: [../portfolio/recommender.md, ../../architecture/data-models.md, ../../architecture/data-flow.md, ../../architecture/ui-conventions.md]
 ---
 
 # 組合追蹤
@@ -23,11 +23,24 @@ related: [../portfolio/recommender.md, ../../architecture/data-models.md, ../../
 
 | 方法 | 路徑 | 說明 |
 |------|------|------|
-| POST | `/api/portfolios/saved` | 儲存組合；`base_date` 由後端取 `date.today()` |
+| POST | `/api/portfolios/saved` | 儲存組合；`base_date` 由後端取 `date.today()`，可帶 `?allow_fallback=true` 走 probe 回退路徑 |
+| POST | `/api/portfolios/saved/probe` | 前置探測：給一組 symbols，回 `{target_date, resolved_date, today_available, missing_today_symbols}` |
 | GET | `/api/portfolios/saved` | 列出全部已儲存組合（metadata，不含 holdings 明細） |
 | GET | `/api/portfolios/saved/{id}` | 取單筆詳細（含 holdings 明細） |
 | DELETE | `/api/portfolios/saved/{id}` | 刪除組合；成功 204，不存在 404 |
 | GET | `/api/portfolios/saved/{id}/performance` | 計算並回傳 NAV 走勢 |
+
+**base_date probe 流程：**
+
+- 前端呼叫 `POST /portfolios/saved/probe`（body：`{symbols: [...]}`），後端檢查 `prices_daily`：
+  - `target_date`：`date.today()`
+  - `today_available`：所有 symbol 今日都有收盤價時為 `true`
+  - `resolved_date`：若 `today_available=false`，倒退找「所有 symbol 都有報價」的最近歷史日；若歷史上從未全齊則為 `null`
+  - `missing_today_symbols`：今日缺價的 symbol 清單
+- 前端依 probe 結果決定：
+  - `today_available=true` → 直接 `POST /portfolios/saved`（`allow_fallback=false`）
+  - `today_available=false` 且 `resolved_date` 有值 → 彈 `BaseDateConfirmDialog`，使用者選「以 `resolved_date` 為基準繼續」則帶 `allow_fallback=true` 再 POST
+  - `resolved_date=null` → dialog 內「繼續」按鈕 disabled，只能取消去點 nav 更新報價補抓
 
 **`save_portfolio`（`portfolios/service.py`）：**
 
@@ -51,8 +64,12 @@ nav(t) = Σ( weight_i × price_i(t) / base_price_i )
 **`/portfolios` 推薦頁（`PortfoliosPage.tsx`）：**
 
 - 每個 tab（style）的持股列表下方有「儲存此組合」按鈕
-- 點擊呼叫 `POST /api/portfolios/saved`，成功後重新載入頁底「已儲存組合」清單
+- 點擊先呼叫 `probeBaseDate(symbols)`：
+  - `today_available=true` → 直接存
+  - `today_available=false` → 彈 `BaseDateConfirmDialog`，使用者確認後才以 `allow_fallback=true` 呼叫 `POST /api/portfolios/saved`
+- 成功後重新載入頁底「已儲存組合」清單
 - 「已儲存組合」清單由 `SavedPortfolioList.tsx` 渲染，每項顯示 label / style / base_date / 持股數；點擊跳轉 `/portfolios/:id`
+- **頁內原有的「更新今日報價」按鈕已移除**（統一搬到 nav，見下）
 
 **`/portfolios/:id` 追蹤詳細頁（`PortfolioTrackingPage.tsx`）：**
 
@@ -61,7 +78,21 @@ nav(t) = Σ( weight_i × price_i(t) / base_price_i )
 - 持股明細表：symbol / name / 權重 / base_price
 - 右上「刪除追蹤組合」按鈕 → 視窗確認 → `DELETE /api/portfolios/saved/{id}` → 跳回 `/portfolios`
 
-**API client：**`frontend/src/api/savedPortfolios.ts`，包含 `listSavedPortfolios`、`getSavedPortfolio`、`saveRecommendedPortfolio`、`deleteSavedPortfolio`、`fetchPerformance`。
+**Nav 全域「更新報價」按鈕（`NavUpdatePricesButton.tsx`）：**
+
+- 位於右上 header，跨頁常駐
+- 點擊後收集 union(saved portfolios 持股 ∪ localStorage 收藏 ∪ 當前 `/stocks/:symbol` URL 的 symbol)，派出 `twse_prices_batch` job
+- 狀態回饋改用**顯式 popover 狀態面板**：按鈕下方浮出（running 琥珀 / done 綠 / error 紅），有 ✕ 按鈕讓使用者手動解除
+  - 為什麼不用 `title=` 原生 tooltip：macOS / 部分瀏覽器不顯示或 hover 延遲過長
+- 底層是共用 hook `useUpdatePricesJob`，同一套 state machine 被「加入組合」等其他觸發點重用（目前僅 nav 使用，但 hook 保留擴充空間）
+
+**「今日報價不齊」共用 Dialog（`BaseDateConfirmDialog.tsx`）：**
+
+- 同時被 `PortfoliosPage`（儲存推薦組合）與 `StockActions`（加入組合）使用
+- 顯示：缺價的 symbol 清單、`resolved_date` 作為 fallback 基準、「取消 / 以 {resolved_date} 為基準繼續」兩個動作
+- `resolved_date=null` 時「繼續」按鈕 disabled，並提示使用者去點 nav 更新報價
+
+**API client：**`frontend/src/api/savedPortfolios.ts`，包含 `listSavedPortfolios`、`getSavedPortfolio`、`saveRecommendedPortfolio`（支援 `{allowFallback}`）、`deleteSavedPortfolio`、`fetchPerformance`、`probeBaseDate`。
 
 ## 關鍵檔案
 
@@ -69,11 +100,16 @@ nav(t) = Σ( weight_i × price_i(t) / base_price_i )
 - [backend/src/alpha_lab/schemas/saved_portfolio.py](../../../../backend/src/alpha_lab/schemas/saved_portfolio.py)
 - [backend/src/alpha_lab/api/routes/portfolios.py](../../../../backend/src/alpha_lab/api/routes/portfolios.py)
 - [backend/src/alpha_lab/storage/models.py](../../../../backend/src/alpha_lab/storage/models.py)（`SavedPortfolio`、`PortfolioSnapshot` 類別）
+- [backend/src/alpha_lab/jobs/service.py](../../../../backend/src/alpha_lab/jobs/service.py)（`TWSE_PRICES_BATCH` 分派：0.3s throttle + 1s retry-once 吃掉 TWSE WAF 偶發 stat 錯誤）
 - [frontend/src/api/savedPortfolios.ts](../../../../frontend/src/api/savedPortfolios.ts)
 - [frontend/src/pages/PortfolioTrackingPage.tsx](../../../../frontend/src/pages/PortfolioTrackingPage.tsx)
 - [frontend/src/components/portfolio/PerformanceChart.tsx](../../../../frontend/src/components/portfolio/PerformanceChart.tsx)
 - [frontend/src/components/portfolio/SavedPortfolioList.tsx](../../../../frontend/src/components/portfolio/SavedPortfolioList.tsx)
+- [frontend/src/components/portfolio/BaseDateConfirmDialog.tsx](../../../../frontend/src/components/portfolio/BaseDateConfirmDialog.tsx)（跨頁共用 dialog）
+- [frontend/src/components/NavUpdatePricesButton.tsx](../../../../frontend/src/components/NavUpdatePricesButton.tsx)
+- [frontend/src/hooks/useUpdatePricesJob.ts](../../../../frontend/src/hooks/useUpdatePricesJob.ts)
 - [frontend/tests/e2e/portfolio-tracking.spec.ts](../../../../frontend/tests/e2e/portfolio-tracking.spec.ts)
+- [frontend/tests/e2e/stock-actions.spec.ts](../../../../frontend/tests/e2e/stock-actions.spec.ts)（含 probe / dialog 案例）
 
 ## 修改時注意事項
 
@@ -81,4 +117,6 @@ nav(t) = Σ( weight_i × price_i(t) / base_price_i )
 - **改 `base_date` 邏輯**：目前固定取 `date.today()`（由 route 傳入），若改成讓使用者自選 base_date，需同步更新 `SavedPortfolioCreate` schema 和 route 參數。
 - **`portfolio_snapshots` 擴充**：目前 `compute_performance` 僅 upsert 最新一筆作快取；若未來要用它做批次 NAV 更新（排程），需修改 upsert 邏輯為逐日寫入，並在 `jobs/types.py` 新增 JobType。
 - **holdings 儲存格式**：`holdings_json` 為 JSON 字串（Text 欄位），直接在 `SavedPortfolio` row 內，無獨立關聯表。新增持股欄位時須更新 `SavedHolding` schema 並考慮既存資料相容性。
-- **400 錯誤前提**：`POST /api/portfolios/saved` 需要 `prices_daily` 表中有 `(symbol, base_date)` 收盤價。若 DB 無資料直接儲存會收到 400，需先跑 `daily_collect`。
+- **400 錯誤前提**：`POST /api/portfolios/saved` 需要 `prices_daily` 表中有 `(symbol, base_date)` 收盤價。若 DB 無資料直接儲存會收到 400，需先跑 nav 更新報價或 `daily_collect`。前端已改為**先 probe 後 POST** 避開這條 error path，但保留作為兜底。
+- **新增觸發點要重用共用元件**：任何新的「儲存 / 加入組合」流程都要走 `probeBaseDate` + `BaseDateConfirmDialog`，不要自己重做 dialog；任何需要觸發價格更新的 UI 都用 `useUpdatePricesJob` hook，不要重新實作 polling。
+- **TWSE_PRICES_BATCH 偶發失敗**：已加 0.3s 間隔 + 1s 退避重試吃掉 WAF 偶發 stat 錯誤；`TWSERateLimitError`（明確 403/封鎖）不重試、直接 fail 整個 job。若出現大量 `failed:` suffix 在 summary，先排查是不是撞到 WAF 而非單檔資料問題。

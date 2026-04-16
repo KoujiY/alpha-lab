@@ -11,5 +11,6 @@
 | `api-reference.md` | 所有 API endpoints 清單與用途（附 Swagger 連結） | Phase 2 起 |
 | `data-flow.md` | TWSE/MOPS → collector → SQLite → API → UI 的完整路徑 | Phase 1 |
 | `storage.md` | `data/` 下各子資料夾用途、`index.json` schema、備份策略 | Phase 4 |
+| `ui-conventions.md` | 跨功能共用的前端 UI 模式（狀態面板、共用 dialog、hooks、localStorage vs DB） | Phase 6 |
 
 Phase 0 只保留資料夾與本 README。
