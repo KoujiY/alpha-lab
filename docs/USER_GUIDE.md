@@ -184,6 +184,18 @@ nav(t) = Σ( weight_i × today_close_i / base_close_i )
 
 追蹤詳細頁右上「刪除追蹤組合」按鈕 → 視窗二次確認 → 從 `portfolios_saved` 移除，自動跳回 `/portfolios`。
 
+### 組合血緣（Phase 7A）✅
+
+當你在個股頁點「加入組合」建立的新組合，會自動記錄來自哪個母組合。進到新組合的追蹤頁時：
+
+- 標題下方會顯示「由 組合 #X 分裂」連結，一鍵回到母組合
+- 報酬卡片會多一張琥珀色「自母組合起報酬」，呈現從母組合 `base_date` 起算的連續報酬（= `parent_nav_at_fork × latest_nav - 1`）
+- NAV 走勢圖把母組合歷史走勢（灰色虛線）接在新組合之前，fork 當日畫一條橘色垂直線標示切換點
+
+沒有母組合（直接在 `/portfolios` 儲存推薦）的組合則維持原樣，不顯示上述資訊。
+
+此外，Phase 7A 在後端 schema 層加了兩道防線：同一組合不能有重複 symbol、持股權重總和需在 `|sum - 1.0| ≤ 1e-6` 內，違反會回 422；這避免前端 `buildMergedHoldings` 合成時意外把同檔股票重複加入或累積浮點誤差。
+
 ### 術語庫
 
 - 路徑：`backend/src/alpha_lab/glossary/terms.yaml`
@@ -206,7 +218,8 @@ nav(t) = Σ( weight_i × today_close_i / base_close_i )
 | 4 | 教學系統完整化 + 分析報告儲存（E） |
 | 5 | 選股篩選器（B）✅ |
 | 6 | 組合追蹤 + 報告管理 + 教學開關（D）✅ |
-| 7 | 數據源與自動化 |
+| 7A | 組合追蹤強化（血緣 + schema 驗證）✅ |
+| 7B | 數據源與自動化（Yahoo 備援、新聞彙整、每日簡報、離線快取） |
 | 8 | UI 升級 |
 | 9 | 頁面擴充 |
 

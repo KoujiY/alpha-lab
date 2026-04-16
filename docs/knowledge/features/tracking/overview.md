@@ -12,6 +12,38 @@ related: [../portfolio/recommender.md, ../../architecture/data-models.md, ../../
 
 ## 現行實作（Phase 6）
 
+### Phase 7A 追加：血緣欄位與連續 NAV
+
+**資料表新增欄位：**
+
+- `portfolios_saved.parent_id`：指向母組合（`portfolios_saved.id`，nullable，`ON DELETE SET NULL`）
+- `portfolios_saved.parent_nav_at_fork`：fork 當下母組合的 `latest_nav`（nullable）
+
+欄位以 idempotent `ALTER TABLE ADD COLUMN` migration 補上（見 `storage/migrations.py::add_column_if_missing` 與 `storage/init_db.py`）。
+
+**`save_portfolio` 流程新增：**
+
+- 若 `payload.parent_id` 非 None，先呼叫 `compute_performance(parent_id)` 取 `latest_nav`，存為 `parent_nav_at_fork`；parent 不存在 → `ValueError` → 400
+- parent NAV 查詢發生於 `session_scope()` 之外，避免巢狀 session 衝突
+
+**`compute_performance` 回傳新增：**
+
+- `parent_points`：若 row 有 `parent_id`，遞迴取 parent 的 `points` 中 `date < child.base_date` 的部分；parent 已被刪除時退回 `None` 並在後端 log warning
+- `parent_nav_at_fork`：直接讀 row 欄位
+- `_visited` 參數防 parent 鏈 cycle（人為錯誤寫入）導致無窮遞迴
+
+**SavedPortfolioCreate schema 驗證（Pydantic `model_validator(mode="after")`）：**
+
+- `holdings` 內 `symbol` 不得重複 → `ValidationError` → 422
+- `abs(sum(weights) - 1.0) > 1e-6` → `ValidationError` → 422（`buildMergedHoldings` 產生的浮點漂移落在容忍內；常數 `WEIGHT_SUM_TOLERANCE` 置於 schema 檔頂）
+
+**前端連續曲線：**
+
+- `PerformanceChart` 新增 `parentPoints` / `parentNavAtFork` props；拿到時把 self 段 NAV `× parentNavAtFork` 勾連 parent 段末端成為連續曲線，並在 fork date 畫垂直 `ReferenceLine`
+- `buildChartSeries` 函式單獨 export 供單測驗證（`frontend/tests/components/PerformanceChart.test.tsx`）
+- `PortfolioTrackingPage` 顯示「由 組合 #X 分裂」區塊（連結回父組合）與「自母組合起報酬」卡片（值為 `parent_nav_at_fork × latest_nav - 1`）
+- `StockActions.persistMerged` 在 `POST /api/portfolios/saved` body 補 `parent_id: detail.id`
+
 ### 後端
 
 **資料表（`backend/src/alpha_lab/storage/models.py`）：**
@@ -97,6 +129,8 @@ nav(t) = Σ( weight_i × price_i(t) / base_price_i )
 ## 關鍵檔案
 
 - [backend/src/alpha_lab/portfolios/service.py](../../../../backend/src/alpha_lab/portfolios/service.py)
+- [backend/src/alpha_lab/storage/migrations.py](../../../../backend/src/alpha_lab/storage/migrations.py)
+- [frontend/tests/components/PerformanceChart.test.tsx](../../../../frontend/tests/components/PerformanceChart.test.tsx)
 - [backend/src/alpha_lab/schemas/saved_portfolio.py](../../../../backend/src/alpha_lab/schemas/saved_portfolio.py)
 - [backend/src/alpha_lab/api/routes/portfolios.py](../../../../backend/src/alpha_lab/api/routes/portfolios.py)
 - [backend/src/alpha_lab/storage/models.py](../../../../backend/src/alpha_lab/storage/models.py)（`SavedPortfolio`、`PortfolioSnapshot` 類別）
@@ -120,3 +154,6 @@ nav(t) = Σ( weight_i × price_i(t) / base_price_i )
 - **400 錯誤前提**：`POST /api/portfolios/saved` 需要 `prices_daily` 表中有 `(symbol, base_date)` 收盤價。若 DB 無資料直接儲存會收到 400，需先跑 nav 更新報價或 `daily_collect`。前端已改為**先 probe 後 POST** 避開這條 error path，但保留作為兜底。
 - **新增觸發點要重用共用元件**：任何新的「儲存 / 加入組合」流程都要走 `probeBaseDate` + `BaseDateConfirmDialog`，不要自己重做 dialog；任何需要觸發價格更新的 UI 都用 `useUpdatePricesJob` hook，不要重新實作 polling。
 - **TWSE_PRICES_BATCH 偶發失敗**：已加 0.3s 間隔 + 1s 退避重試吃掉 WAF 偶發 stat 錯誤；`TWSERateLimitError`（明確 403/封鎖）不重試、直接 fail 整個 job。若出現大量 `failed:` suffix 在 summary，先排查是不是撞到 WAF 而非單檔資料問題。
+- **Phase 7 血緣欄位為 nullable**：既有儲存組合的 `parent_id` / `parent_nav_at_fork` 皆為 NULL，所有前端 UI 必須把「沒 parent」當正常狀態顯示（`PortfolioTrackingPage` 以 `hasLineage` 判斷，`PerformanceChart` 接受 `parentPoints?: null`）。
+- **fork 不會 rebuild 父組合歷史**：`parent_points` 是在 `compute_performance(child)` 時臨時遞迴出來的，parent 本身資料改動會即時反映；若 parent 被刪除，child 的 `parent_id` 會因 `ON DELETE SET NULL` 變 NULL、`parent_nav_at_fork` 仍保留在 row 上（歷史快照）。改動刪除語意前（例如改成 CASCADE 或阻擋）要同步評估這個快照是否還有意義。
+- **修改 schema validator tolerance**：`WEIGHT_SUM_TOLERANCE = 1e-6` 對應 `buildMergedHoldings` 的典型浮點漂移；若改大會放過真正錯誤的輸入（例如 UI 沒做 normalize 的新流程），改小則可能讓前端自動 normalize 出的權重被拒絕。要調整時先看 [frontend/src/lib/portfolioMerge.ts](../../../../frontend/src/lib/portfolioMerge.ts) 的合成邏輯。
