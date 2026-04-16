@@ -122,3 +122,66 @@ test("加入組合：今日報價不齊 → 彈 BaseDateConfirmDialog", async ({
   await expect(page.getByTestId("save-confirm-cancel")).toBeVisible();
   await expect(page.getByTestId("save-confirm-proceed")).toBeEnabled();
 });
+
+test("加入組合時 POST payload 帶 parent_id 血緣", async ({ page }) => {
+  const parentMeta = {
+    id: 42,
+    style: "balanced",
+    label: "主力組合",
+    note: null,
+    base_date: "2026-04-17",
+    created_at: "2026-04-17T00:00:00Z",
+    holdings_count: 1,
+    parent_id: null,
+    parent_nav_at_fork: null,
+  };
+  const capturedBodies: Array<Record<string, unknown>> = [];
+
+  await page.route("**/api/portfolios/saved", (route: Route) => {
+    const req = route.request();
+    if (req.method() === "GET") {
+      return route.fulfill({ json: [parentMeta] });
+    }
+    if (req.method() === "POST") {
+      capturedBodies.push(req.postDataJSON() as Record<string, unknown>);
+      return route.fulfill({
+        json: {
+          ...parentMeta,
+          id: 99,
+          label: "主力組合 + 2330",
+          parent_id: 42,
+          parent_nav_at_fork: 1.0,
+        },
+      });
+    }
+    return route.fallback();
+  });
+  await page.route("**/api/portfolios/saved/42", (route: Route) =>
+    route.fulfill({
+      json: {
+        ...parentMeta,
+        holdings: [
+          { symbol: "2317", name: "鴻海", weight: 1.0, base_price: 100 },
+        ],
+      },
+    }),
+  );
+  await page.route("**/api/portfolios/saved/probe*", (route: Route) =>
+    route.fulfill({
+      json: {
+        target_date: "2026-04-17",
+        resolved_date: "2026-04-17",
+        today_available: true,
+        missing_today_symbols: [],
+      },
+    }),
+  );
+
+  await page.goto("/stocks/2330");
+  await page.getByTestId("add-to-portfolio").click();
+  await page.getByTestId("pick-portfolio-42").click();
+
+  await expect.poll(() => capturedBodies.length).toBeGreaterThan(0);
+  expect(capturedBodies[0]?.parent_id).toBe(42);
+  expect(capturedBodies[0]?.label).toBe("主力組合 + 2330");
+});
