@@ -13,6 +13,7 @@
 
 from __future__ import annotations
 
+import re
 import ssl
 from datetime import date, datetime, time, timedelta, timezone
 from typing import Any
@@ -50,8 +51,12 @@ async def fetch_yahoo_daily_prices(
     """抓取 [start, end] 區間的每日 OHLCV。
 
     Raises:
-        YahooFetchError: Yahoo 回錯誤 envelope 或 HTTP 5xx/4xx
+        ValueError: symbol 格式不符台股規則
+        YahooFetchError: Yahoo 回錯誤 envelope、HTTP 5xx/4xx 或網路錯誤
     """
+    if not re.fullmatch(r"\d{4,6}", symbol):
+        raise ValueError(f"Invalid TWSE symbol: {symbol!r}")
+
     settings = get_settings()
     headers = {"User-Agent": settings.http_user_agent}
     params: dict[str, str | int] = {
@@ -61,18 +66,23 @@ async def fetch_yahoo_daily_prices(
     }
     path = CHART_PATH_TEMPLATE.format(symbol=symbol)
 
-    async with httpx.AsyncClient(
-        base_url=YAHOO_BASE_URL,
-        timeout=settings.http_timeout_seconds,
-        headers=headers,
-        verify=_build_ssl_context(),
-    ) as client:
-        resp = await client.get(path, params=params)
-        if resp.status_code >= 400:
-            raise YahooFetchError(
-                f"Yahoo chart HTTP {resp.status_code} for {symbol}: {resp.text[:200]}"
-            )
-        payload = resp.json()
+    try:
+        async with httpx.AsyncClient(
+            base_url=YAHOO_BASE_URL,
+            timeout=settings.http_timeout_seconds,
+            headers=headers,
+            verify=_build_ssl_context(),
+        ) as client:
+            resp = await client.get(path, params=params)
+            if resp.status_code >= 400:
+                raise YahooFetchError(
+                    f"Yahoo chart HTTP {resp.status_code} for {symbol}: {resp.text[:200]}"
+                )
+            payload = resp.json()
+    except (httpx.RequestError, ValueError) as exc:
+        raise YahooFetchError(
+            f"Yahoo chart network error for {symbol}: {exc}"
+        ) from exc
 
     chart = payload.get("chart") or {}
     err = chart.get("error")

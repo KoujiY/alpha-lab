@@ -48,6 +48,8 @@ async def test_fetch_yahoo_daily_prices_parses_chart_payload():
     assert rows[0].source == "yahoo"
     assert rows[0].close == pytest.approx(725.0)
     assert rows[0].volume == 30000000
+    assert rows[0].trade_date == date(2024, 4, 1)
+    assert rows[1].trade_date == date(2024, 4, 2)
 
 
 @pytest.mark.asyncio
@@ -109,3 +111,14 @@ async def test_fetch_yahoo_raises_on_http_5xx():
         await fetch_yahoo_daily_prices(
             symbol="2330", start=date(2024, 4, 1), end=date(2024, 4, 2)
         )
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_fetch_yahoo_returns_empty_on_no_results():
+    payload = {"chart": {"result": [], "error": None}}
+    respx.get(CHART_URL).mock(return_value=httpx.Response(200, json=payload))
+    rows = await fetch_yahoo_daily_prices(
+        symbol="2330", start=date(2024, 4, 1), end=date(2024, 4, 2)
+    )
+    assert rows == []
