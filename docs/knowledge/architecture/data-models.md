@@ -1,6 +1,6 @@
 ---
 domain: architecture
-updated: 2026-04-15
+updated: 2026-04-17
 related: [data-flow.md, ../collectors/twse.md, ../collectors/mops.md, ../collectors/mops-cashflow.md, ../collectors/events.md, ../domain/scoring.md]
 ---
 
@@ -25,6 +25,8 @@ related: [data-flow.md, ../collectors/twse.md, ../collectors/mops.md, ../collect
 | `events` | id (autoincrement) | TWSE OpenAPI t187ap04_L | 1.5 |
 | `financial_statements` | (symbol, period, statement_type) | TWSE OpenAPI t187ap06/07_L_ci（income + balance）；cashflow 採 MOPS t164sb05 HTML scrape | 1.5 / 3 |
 | `scores` | (symbol, calc_date) | `compute_scores` pipeline 產出 | 3 |
+| `portfolios_saved` | id (autoincrement) | 使用者儲存的推薦組合，holdings 以 JSON Text 內嵌 | 6 |
+| `portfolio_snapshots` | (portfolio_id, snapshot_date) | NAV 快照快取（`compute_performance` 自動 upsert 最新一筆） | 6 |
 
 ### Pydantic Schemas
 
@@ -38,6 +40,7 @@ related: [data-flow.md, ../collectors/twse.md, ../collectors/mops.md, ../collect
 | `schemas/event.py` | `Event` |
 | `schemas/financial_statement.py` | `FinancialStatement` + `StatementType` enum |
 | `schemas/job.py` | Job API request/response |
+| `schemas/saved_portfolio.py` | Saved Portfolio API（`SavedPortfolioCreate`、`SavedPortfolioMeta`、`SavedPortfolioDetail`、`PerformanceResponse`） |
 
 ### 設計原則
 
@@ -61,3 +64,4 @@ related: [data-flow.md, ../collectors/twse.md, ../collectors/mops.md, ../collect
 - `financial_statements` 增加新表類型時：擴充 `StatementType` enum + 對應 nullable 欄位 + runner fields dict
 - Phase 3 已加入 cashflow（FCF 評分需要）：來源 MOPS `t164sb05` HTML scrape，見 `collectors/mops-cashflow.md`
 - `scores` 表只存當日快照；多次 upsert 同日會覆寫 row，歷史分數不保留
+- Phase 6 `portfolios_saved` 的 `holdings_json` 欄位將持股明細（`list[{symbol, name, weight, base_price}]`）序列化為 JSON 字串存於 `Text` 欄位，無獨立 holdings 關聯表；修改持股資料結構時需同步更新 `SavedHolding` schema，並考量既存 DB row 的相容性

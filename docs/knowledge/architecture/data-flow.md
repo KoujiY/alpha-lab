@@ -1,7 +1,7 @@
 ---
 domain: architecture
 updated: 2026-04-17
-related: [data-models.md, ../collectors/twse.md, ../collectors/twse-stock-info.md, ../collectors/mops.md, ../collectors/mops-cashflow.md, ../collectors/events.md, ../domain/scoring.md, ../features/portfolio/recommender.md, ../features/reports/storage.md, ../features/screener/overview.md]
+related: [data-models.md, ../collectors/twse.md, ../collectors/twse-stock-info.md, ../collectors/mops.md, ../collectors/mops-cashflow.md, ../collectors/events.md, ../domain/scoring.md, ../features/portfolio/recommender.md, ../features/reports/storage.md, ../features/screener/overview.md, ../features/tracking/overview.md]
 ---
 
 # 資料流
@@ -177,3 +177,41 @@ POST /api/screener/filter (FilterRequest)
 前端：`/screener` → fetchFactors + filterStocks → ScreenerPage（滑桿 + 結果表格）
 
 詳見 [features/screener/overview.md](../features/screener/overview.md)。
+
+## Phase 6 新增：組合追蹤
+
+```
+POST /api/portfolios/saved (SavedPortfolioCreate)
+  → portfolios/service.py::save_portfolio
+    → base_date = date.today()（由 route 傳入）
+    → 遍歷 holdings：若 base_price <= 0
+        → SELECT prices_daily.close WHERE symbol = h.symbol AND trade_date = base_date
+        → 找不到 → raise ValueError → route 回 HTTP 400
+    → INSERT portfolios_saved row（holdings 序列化為 JSON Text 內嵌）
+
+GET /api/portfolios/saved → list_saved()
+  → SELECT portfolios_saved ORDER BY created_at DESC → list[SavedPortfolioMeta]
+
+GET /api/portfolios/saved/{id} → get_saved()
+  → session.get(SavedPortfolio, id) → SavedPortfolioDetail（含 holdings 明細）
+
+DELETE /api/portfolios/saved/{id} → delete_saved()
+  → session.delete(row) → 204；不存在 → 404
+
+GET /api/portfolios/saved/{id}/performance
+  → portfolios/service.py::compute_performance
+    → load SavedPortfolio row + _holdings_from_json
+    → SELECT prices_daily WHERE symbol IN holdings AND trade_date >= base_date
+    → 計算各 symbol 有報價日期的交集（共同交易日）
+    → for each trade_date（升序）：
+        nav(t) = Σ( weight_i × price_i(t) / base_price_i )
+        daily_return = nav(t) / nav(t-1) - 1（第一筆為 None）
+    → upsert portfolio_snapshots（最新一筆，供排程擴充用）
+    → PerformanceResponse { portfolio, points, latest_nav, total_return }
+```
+
+前端消費：
+- `PortfolioTrackingPage.tsx` 呼叫 `fetchPerformance(id)` → `PerformanceChart.tsx`（recharts `LineChart`）渲染 NAV 走勢；`total_return` 以百分比格式顯示於頁面上方。
+- `SavedPortfolioList.tsx` 於 `/portfolios` 推薦頁底渲染已儲存清單，每項可跳轉 `/portfolios/:id`。
+
+詳見 [features/tracking/overview.md](../features/tracking/overview.md)。
