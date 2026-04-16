@@ -469,7 +469,10 @@ GET /api/glossary/K線
 | 5 | ✅ 完成（2026-04-17） | 功能 B：選股篩選器 | `POST /api/screener/filter`、`GET /api/screener/factors`、`/screener` 頁面（因子滑桿 + 可排序結果表格 + 409 引導提示）；`apiPost` 擴充 JSON body 支援 |
 | 6 | ✅ 完成（2026-04-17） | 功能 D + 報告管理 + 教學開關 | 組合追蹤（`portfolios_saved`、`portfolio_snapshots` 表、`GET/POST /portfolios/saved`、`GET /saved/{id}/performance`、`/portfolios/:id` 追蹤頁）、績效計算、報告管理（`PATCH /reports/{id}` 加星/改標籤、`DELETE /reports/{id}`）、報告全文搜尋、教學三段密度開關（`TutorialModeContext` + 右上角快捷切換）、個股頁「收藏」「加入組合」按鈕 + 「相關分析報告」區塊；D-UX：`POST /portfolios/saved/probe` + 共用 `BaseDateConfirmDialog` 導入兩個儲存流程、`useUpdatePricesJob` hook + nav 全域「更新報價」按鈕（顯式 popover 狀態面板）、TWSE batch job 加 throttle + retry-once 吃掉 WAF 偶發 stat 錯誤；報告離線快取留到 Phase 7 |
 | 7A | ✅ 完成（2026-04-17） | 組合追蹤強化 | `portfolios_saved.parent_id` + `parent_nav_at_fork` 血緣欄位（`ON DELETE SET NULL`，透過 idempotent `ALTER TABLE ADD COLUMN` migration 補上）；`SavedPortfolioCreate` Pydantic `model_validator`（symbol 唯一 / `\|sum(weights)-1\| < 1e-6`）；`GET /saved/{id}/performance` 回傳 `parent_points` + `parent_nav_at_fork`（遞迴取 parent、`_visited` cycle guard）；`PerformanceChart` 連續 NAV 曲線（parent 虛線 + self 實線 + fork 垂直線，`buildChartSeries` 獨立 export 供單測）；`PortfolioTrackingPage` 「由 組合 #X 分裂」連結與「自母組合起報酬」卡片；`StockActions.persistMerged` 自動帶 `parent_id` |
-| 7B | 未開始 | 數據源與自動化 | Yahoo Finance 備援數據源、新聞彙整（每週掃描）、每日自動簡報（`data/reports/daily/`）、`data/processed/` 計算後指標、報告離線快取；「加入組合」新 symbol 在 base_date 停牌的額外 UX（目前走 `probe_base_date` + dialog，Phase 7B 再視使用情境強化） |
+| 7B | 拆成 3 個 sub-phase（見下） | 數據源與自動化 | 原本一個 phase 包 6 塊功能過重，拆成 7B.1 / 7B.2 / 7B.3 依序進行 |
+| 7B.1 | 未開始 | 數據源擴充 | Yahoo Finance 備援數據源（TWSE 失敗或缺料時 fallback）、`data/processed/` 計算後指標（技術指標、基本面比率預先算好落檔）、新 JobType + 分派邏輯 |
+| 7B.2 | 未開始 | 內容自動化 | 新聞彙整（每週掃描，來源與儲存格式待設計）、每日自動簡報（`data/reports/daily/`，排程機制待定：APScheduler / 外部 cron / 手動觸發） |
+| 7B.3 | 未開始 | UX 與快取 | 報告離線快取（前端 IndexedDB 或後端快取策略）、「加入組合」新 symbol 在 base_date 停牌的強化 UX（目前走 `probe_base_date` + dialog，視使用情境強化） |
 | 8 | 未開始 | UI 升級 | shadcn/ui 元件庫遷移、K 線圖改用 lightweight-charts、列表 / 卡片 / 詳情頁的動作按鈕（收藏 ☆★、刪除、編輯等）一律改用 icon button（搭 `aria-label` + hover tooltip；`data-testid` 保留不變以維持 E2E）；**「加入組合」兩步 wizard UI**（選基底組合 → 預覽 delta-weight 套用後的新權重表 + 可手動微調每檔 → 確認後建立新組合，把權重決策從黑箱改為顯性化）；**Soft limit warnings**（持股數 > 20、單檔權重 > 40%、極小權重 < 0.5% 跳警告，不 hard block） |
 | 9 | 未開始 | 頁面擴充 | `/stocks` 股票瀏覽列表頁、`/settings` 設定頁（localStorage 偏好管理）、回顧時間軸瀏覽模式 |
 
