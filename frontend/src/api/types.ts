@@ -225,6 +225,7 @@ export interface SavedPortfolioCreate {
   label: string;
   note?: string | null;
   holdings: SavedHolding[];
+  parent_id?: number | null;
 }
 
 export interface SavedPortfolioMeta {
@@ -235,6 +236,8 @@ export interface SavedPortfolioMeta {
   base_date: string;
   created_at: string;
   holdings_count: number;
+  parent_id: number | null;
+  parent_nav_at_fork: number | null;
 }
 
 export interface SavedPortfolioDetail extends SavedPortfolioMeta {
@@ -252,6 +255,8 @@ export interface PerformanceResponse {
   points: PerformancePoint[];
   latest_nav: number;
   total_return: number;
+  parent_points: PerformancePoint[] | null;
+  parent_nav_at_fork: number | null;
 }
 
 export interface BaseDateProbe {

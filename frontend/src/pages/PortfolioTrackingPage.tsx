@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { deleteSavedPortfolio, fetchPerformance } from "@/api/savedPortfolios";
 import { PerformanceChart } from "@/components/portfolio/PerformanceChart";
@@ -32,9 +32,28 @@ export function PortfolioTrackingPage() {
     return <p className="text-red-400">載入失敗</p>;
   }
 
-  const { portfolio, points, latest_nav, total_return } = data;
+  const {
+    portfolio,
+    points,
+    latest_nav,
+    total_return,
+    parent_points,
+    parent_nav_at_fork,
+  } = data;
   const returnPct = (total_return * 100).toFixed(2);
   const returnColor = total_return >= 0 ? "text-emerald-400" : "text-red-400";
+
+  const hasLineage =
+    portfolio.parent_id != null && portfolio.parent_nav_at_fork != null;
+  const continuousReturn = hasLineage
+    ? (portfolio.parent_nav_at_fork as number) * latest_nav - 1.0
+    : null;
+  const continuousPct =
+    continuousReturn != null ? (continuousReturn * 100).toFixed(2) : null;
+  const continuousColor =
+    continuousReturn != null && continuousReturn >= 0
+      ? "text-emerald-400"
+      : "text-red-400";
 
   return (
     <div className="space-y-4" data-testid="portfolio-tracking-page">
@@ -45,6 +64,22 @@ export function PortfolioTrackingPage() {
             {portfolio.style} · 起始 {portfolio.base_date} ·{" "}
             {portfolio.holdings_count} 檔
           </p>
+          {hasLineage ? (
+            <p
+              className="mt-1 text-xs text-amber-300"
+              data-testid="lineage-info"
+            >
+              由{" "}
+              <Link
+                to={`/portfolios/${portfolio.parent_id}`}
+                className="underline hover:text-amber-200"
+                data-testid="lineage-parent-link"
+              >
+                組合 #{portfolio.parent_id}
+              </Link>{" "}
+              分裂 · fork NAV {portfolio.parent_nav_at_fork?.toFixed(4)}
+            </p>
+          ) : null}
         </div>
         <button
           type="button"
@@ -69,11 +104,26 @@ export function PortfolioTrackingPage() {
           <p className="text-xs text-slate-500">累積報酬</p>
           <p className={`text-lg font-semibold ${returnColor}`}>{returnPct}%</p>
         </div>
+        {continuousPct != null ? (
+          <div
+            className="rounded border border-amber-700 bg-amber-900/20 p-3"
+            data-testid="continuous-return-card"
+          >
+            <p className="text-xs text-amber-300">自母組合起報酬</p>
+            <p className={`text-lg font-semibold ${continuousColor}`}>
+              {continuousPct}%
+            </p>
+          </div>
+        ) : null}
       </div>
 
       <section className="rounded border border-slate-800 bg-slate-900/40 p-4">
         <h2 className="mb-2 text-sm font-semibold text-slate-300">NAV 走勢</h2>
-        <PerformanceChart points={points} />
+        <PerformanceChart
+          points={points}
+          parentPoints={parent_points}
+          parentNavAtFork={parent_nav_at_fork}
+        />
       </section>
 
       <section className="rounded border border-slate-800 bg-slate-900/40 p-4">

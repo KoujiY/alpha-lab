@@ -66,6 +66,7 @@ export function StockActions({ meta }: StockActionsProps) {
         style: detail.style,
         label: `${detail.label} + ${meta.symbol}`,
         holdings: merged,
+        parent_id: detail.id,
       },
       { allowFallback },
     );
