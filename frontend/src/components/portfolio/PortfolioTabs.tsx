@@ -6,6 +6,7 @@ import { HoldingsTable } from "./HoldingsTable";
 
 interface PortfolioTabsProps {
   portfolios: Portfolio[];
+  onSave?: (portfolio: Portfolio) => void;
 }
 
 const STYLE_ORDER: PortfolioStyle[] = [
@@ -14,7 +15,7 @@ const STYLE_ORDER: PortfolioStyle[] = [
   "aggressive",
 ];
 
-export function PortfolioTabs({ portfolios }: PortfolioTabsProps) {
+export function PortfolioTabs({ portfolios, onSave }: PortfolioTabsProps) {
   const sorted = STYLE_ORDER.map((s) =>
     portfolios.find((p) => p.style === s),
   ).filter((p): p is Portfolio => p !== undefined);
@@ -50,13 +51,25 @@ export function PortfolioTabs({ portfolios }: PortfolioTabsProps) {
       </div>
       {current && (
         <div>
-          <div className="mb-3 flex gap-6 text-sm text-slate-400">
-            <span>
-              預期殖利率：{current.expected_yield?.toFixed(2) ?? "—"}%
-            </span>
-            <span>
-              風險分數：{current.risk_score?.toFixed(1) ?? "—"}
-            </span>
+          <div className="mb-3 flex items-center justify-between gap-4">
+            <div className="flex gap-6 text-sm text-slate-400">
+              <span>
+                預期殖利率：{current.expected_yield?.toFixed(2) ?? "—"}%
+              </span>
+              <span>
+                風險分數：{current.risk_score?.toFixed(1) ?? "—"}
+              </span>
+            </div>
+            {onSave ? (
+              <button
+                type="button"
+                onClick={() => onSave(current)}
+                className="rounded border border-sky-500 bg-sky-500/10 px-3 py-1.5 text-sm text-sky-300 hover:bg-sky-500/20"
+                data-testid="save-portfolio-button"
+              >
+                儲存此組合
+              </button>
+            ) : null}
           </div>
           <HoldingsTable holdings={current.holdings} />
         </div>

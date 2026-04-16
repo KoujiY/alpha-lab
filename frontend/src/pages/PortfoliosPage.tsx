@@ -1,8 +1,11 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { recommendPortfolios } from "@/api/portfolios";
+import { saveRecommendedPortfolio } from "@/api/savedPortfolios";
+import type { Portfolio, SavedPortfolioMeta } from "@/api/types";
 import { PortfolioTabs } from "@/components/portfolio/PortfolioTabs";
+import { SavedPortfolioList } from "@/components/portfolio/SavedPortfolioList";
 
 type SaveState =
   | { status: "idle" }
@@ -10,13 +13,23 @@ type SaveState =
   | { status: "success"; savedAt: string }
   | { status: "error"; message: string };
 
+type SaveOneState =
+  | { status: "idle" }
+  | { status: "pending" }
+  | { status: "success"; label: string }
+  | { status: "error"; message: string };
+
 export function PortfoliosPage() {
+  const queryClient = useQueryClient();
   const { data, isLoading, error } = useQuery({
     queryKey: ["portfolios-recommend"],
     queryFn: () => recommendPortfolios(),
   });
 
   const [saveState, setSaveState] = useState<SaveState>({ status: "idle" });
+  const [saveOneState, setSaveOneState] = useState<SaveOneState>({
+    status: "idle",
+  });
 
   const saveMutation = useMutation({
     mutationFn: () => recommendPortfolios(undefined, { saveReport: true }),
@@ -28,6 +41,33 @@ export function PortfoliosPage() {
     },
     onError: (err) => {
       setSaveState({
+        status: "error",
+        message: err instanceof Error ? err.message : "未知錯誤",
+      });
+    },
+  });
+
+  const saveOneMutation = useMutation<SavedPortfolioMeta, Error, Portfolio>({
+    mutationFn: (p: Portfolio) =>
+      saveRecommendedPortfolio({
+        style: p.style,
+        label: `${p.label} ${data?.calc_date ?? ""}`.trim(),
+        holdings: p.holdings.map((h) => ({
+          symbol: h.symbol,
+          name: h.name,
+          weight: h.weight,
+          base_price: 0,
+        })),
+      }),
+    onMutate: () => {
+      setSaveOneState({ status: "pending" });
+    },
+    onSuccess: async (resp) => {
+      setSaveOneState({ status: "success", label: resp.label });
+      await queryClient.invalidateQueries({ queryKey: ["saved-portfolios"] });
+    },
+    onError: (err) => {
+      setSaveOneState({
         status: "error",
         message: err instanceof Error ? err.message : "未知錯誤",
       });
@@ -75,7 +115,32 @@ export function PortfoliosPage() {
           ) : null}
         </div>
       </div>
-      <PortfolioTabs portfolios={data.portfolios} />
+
+      <section className="rounded border border-slate-800 bg-slate-900/40 p-4">
+        <h2 className="mb-2 text-sm font-semibold text-slate-300">已儲存組合</h2>
+        <SavedPortfolioList />
+      </section>
+
+      <div className="flex flex-col items-end gap-1">
+        {saveOneState.status === "pending" ? (
+          <p className="text-xs text-slate-400">儲存組合中…</p>
+        ) : null}
+        {saveOneState.status === "success" ? (
+          <p className="text-xs text-emerald-400">
+            已儲存「{saveOneState.label}」
+          </p>
+        ) : null}
+        {saveOneState.status === "error" ? (
+          <p className="text-xs text-red-400">
+            儲存組合失敗：{saveOneState.message}
+          </p>
+        ) : null}
+      </div>
+
+      <PortfolioTabs
+        portfolios={data.portfolios}
+        onSave={(p) => saveOneMutation.mutate(p)}
+      />
     </div>
   );
 }
