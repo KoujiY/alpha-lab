@@ -1,7 +1,7 @@
 ---
 domain: architecture
 updated: 2026-04-17
-related: [data-models.md, ../collectors/twse.md, ../collectors/twse-stock-info.md, ../collectors/mops.md, ../collectors/mops-cashflow.md, ../collectors/events.md, ../domain/scoring.md, ../features/portfolio/recommender.md, ../features/reports/storage.md]
+related: [data-models.md, ../collectors/twse.md, ../collectors/twse-stock-info.md, ../collectors/mops.md, ../collectors/mops-cashflow.md, ../collectors/events.md, ../domain/scoring.md, ../features/portfolio/recommender.md, ../features/reports/storage.md, ../features/screener/overview.md]
 ---
 
 # 資料流
@@ -159,3 +159,21 @@ GET /api/reports/{id}
 - **讀取面**：前端 `/reports` 列表直接吃 `index.json` 排好的順序；細節頁才讀 markdown 檔。
 
 詳見 [features/reports/storage.md](../features/reports/storage.md)。
+
+## Phase 5 新增：選股篩選器
+
+```
+GET /api/screener/factors → 靜態 FACTOR_DEFINITIONS → FactorsResponse
+
+POST /api/screener/filter (FilterRequest)
+  → screener.py::filter_stocks
+    → latest_calc_date(session)
+    → SELECT scores + stocks WHERE calc_date = latest
+    → _passes_filters（逐 row 過濾）
+    → weighted_total（balanced 權重算 total）
+    → 排序 + limit → FilterResponse
+```
+
+前端：`/screener` → fetchFactors + filterStocks → ScreenerPage（滑桿 + 結果表格）
+
+詳見 [features/screener/overview.md](../features/screener/overview.md)。
