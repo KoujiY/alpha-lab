@@ -8,12 +8,14 @@
 import asyncio
 import json
 import logging
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
+import httpx
 from sqlalchemy.orm import Session, sessionmaker
 
 from alpha_lab.analysis.pipeline import score_all
+from alpha_lab.collectors._fallback import should_fallback_to_yahoo
 from alpha_lab.collectors._twse_common import TWSERateLimitError
 from alpha_lab.collectors.mops import fetch_latest_monthly_revenues
 from alpha_lab.collectors.mops_cashflow import fetch_cashflow, upsert_cashflow
@@ -36,6 +38,7 @@ from alpha_lab.collectors.twse import fetch_daily_prices
 from alpha_lab.collectors.twse_institutional import fetch_institutional_trades
 from alpha_lab.collectors.twse_margin import fetch_margin_trades
 from alpha_lab.collectors.twse_stock_info import fetch_stock_info
+from alpha_lab.collectors.yahoo import YahooFetchError, fetch_yahoo_daily_prices
 from alpha_lab.jobs.types import JobType
 from alpha_lab.storage.models import Job
 
@@ -109,13 +112,33 @@ async def _dispatch(
         symbol = params["symbol"]
         year_month_str = params["year_month"]
         year, month = year_month_str.split("-")
-        price_rows = await fetch_daily_prices(
-            symbol=symbol, year_month=date(int(year), int(month), 1)
-        )
+        ym_date = date(int(year), int(month), 1)
+        fallback_used = False
+        try:
+            price_rows = await fetch_daily_prices(symbol=symbol, year_month=ym_date)
+        except Exception as exc:
+            if not should_fallback_to_yahoo(exc):
+                raise
+            logger.info(
+                "twse_prices %s %s → yahoo fallback triggered by %s",
+                symbol, year_month_str, type(exc).__name__,
+            )
+            last_day = _last_day_of_month(ym_date)
+            try:
+                price_rows = await fetch_yahoo_daily_prices(
+                    symbol=symbol, start=ym_date, end=last_day
+                )
+            except YahooFetchError as y_exc:
+                raise RuntimeError(
+                    f"both TWSE and Yahoo failed for {symbol} {year_month_str}: "
+                    f"twse={type(exc).__name__}:{exc}; yahoo={y_exc}"
+                ) from y_exc
+            fallback_used = True
         with session_factory() as session:
             n = upsert_daily_prices(session, price_rows)
             session.commit()
-        return f"upserted {n} price rows for {symbol} {year_month_str}"
+        src = "yahoo" if fallback_used else "twse"
+        return f"upserted {n} price rows for {symbol} {year_month_str} (source={src})"
 
     if job_type is JobType.TWSE_PRICES_BATCH:
         batch_symbols: list[str] = [str(s) for s in params["symbols"]]
@@ -141,28 +164,37 @@ async def _dispatch(
             except TWSERateLimitError:
                 raise
             except ValueError as exc:
-                logger.info(
-                    "batch prices: %s transient stat error, retry once: %s",
-                    sym,
-                    exc,
-                )
+                if "沒有符合條件" in str(exc):
+                    logger.info("batch prices: %s no data, skip", sym)
+                    continue
+                logger.info("batch prices: %s transient stat, retry once: %s", sym, exc)
                 await asyncio.sleep(1.0)
                 try:
                     price_rows = await fetch_daily_prices(
                         symbol=sym, year_month=ym_date
                     )
                 except Exception as retry_exc:
-                    logger.warning(
-                        "batch prices: %s failed after retry: %s",
-                        sym,
-                        retry_exc,
-                    )
+                    if not should_fallback_to_yahoo(retry_exc):
+                        logger.warning("batch prices: %s failed after retry: %s", sym, retry_exc)
+                        failed_symbols.append(sym)
+                        continue
+                    try:
+                        last_day = _last_day_of_month(ym_date)
+                        price_rows = await fetch_yahoo_daily_prices(symbol=sym, start=ym_date, end=last_day)
+                        logger.info("batch prices: %s fallback to yahoo ok", sym)
+                    except YahooFetchError as y_exc:
+                        logger.warning("batch prices: %s fallback yahoo failed: %s", sym, y_exc)
+                        failed_symbols.append(sym)
+                        continue
+            except httpx.HTTPError as exc:
+                try:
+                    last_day = _last_day_of_month(ym_date)
+                    price_rows = await fetch_yahoo_daily_prices(symbol=sym, start=ym_date, end=last_day)
+                    logger.info("batch prices: %s http err → yahoo fallback: %s", sym, exc)
+                except YahooFetchError as y_exc:
+                    logger.warning("batch prices: %s both failed: twse=%s yahoo=%s", sym, exc, y_exc)
                     failed_symbols.append(sym)
                     continue
-            except Exception as exc:
-                logger.warning("batch prices: %s failed: %s", sym, exc)
-                failed_symbols.append(sym)
-                continue
             with session_factory() as session:
                 n = upsert_daily_prices(session, price_rows)
                 session.commit()
@@ -264,4 +296,22 @@ async def _dispatch(
             n = score_all(session, calc_date)
         return f"scored {n} symbols for {calc_date.isoformat()}"
 
+    if job_type is JobType.YAHOO_PRICES:
+        symbol = str(params["symbol"])
+        start = date.fromisoformat(str(params["start"]))
+        end = date.fromisoformat(str(params["end"]))
+        price_rows = await fetch_yahoo_daily_prices(symbol=symbol, start=start, end=end)
+        with session_factory() as session:
+            n = upsert_daily_prices(session, price_rows)
+            session.commit()
+        return f"upserted {n} price rows from yahoo for {symbol} {start}~{end}"
+
     raise ValueError(f"unknown job type: {job_type}")
+
+
+def _last_day_of_month(ym_date: date) -> date:
+    """回傳該月最後一天。"""
+    if ym_date.month == 12:
+        return date(ym_date.year, 12, 31)
+    next_month = date(ym_date.year, ym_date.month + 1, 1)
+    return next_month - timedelta(days=1)

@@ -14,3 +14,6 @@ class JobType(StrEnum):
     MOPS_FINANCIALS = "mops_financials"
     MOPS_CASHFLOW = "mops_cashflow"
     SCORE = "score"
+    YAHOO_PRICES = "yahoo_prices"
+    PROCESSED_INDICATORS = "processed_indicators"
+    PROCESSED_RATIOS = "processed_ratios"
