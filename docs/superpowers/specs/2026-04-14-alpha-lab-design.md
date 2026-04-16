@@ -467,7 +467,7 @@ GET /api/glossary/K線
 | 3 | ✅ 完成（2026-04-16） | 功能 C | 多因子評分引擎（Value/Growth/Dividend/Quality）、MOPS 現金流 collector（FCF）、組合推薦 API、`/portfolios` 頁面與個股頁雷達圖 |
 | 4 | ✅ 完成（2026-04-17） | 功能 E | 推薦理由靜態模板、L2 詳解側邊面板（5 個初始 topic）、報告儲存後端（`data/reports/`、`index.json`、summaries）、`/reports` 回顧列表與細節頁、「儲存此次推薦為報告」按鈕；TWSE 產業代碼→中文名稱映射表留待 Phase 5/6 再補 |
 | 5 | 未開始 | 功能 B | 選股篩選器 |
-| 6 | 未開始 | 功能 D | 組合追蹤、績效計算 |
+| 6 | 未開始 | 功能 D | 組合追蹤、績效計算；附帶報告全文搜尋 / 離線快取（Phase 4 遺留，前端 `/reports` 頁面預期有一定累積量時再做） |
 | 7（預留） | 未開始 | Claude API 整合 | `backend/ai/` 實作 |
 
 **Phase 1 vs 1.5 切分理由**：Phase 1 先打通「抓取 → 落庫 → API 觸發」的核心管線，驗證 job 系統與資料流設計正確；季報、事件等複雜度高的 collector 放 Phase 1.5。schema 一次定義完整（Phase 1 建表涵蓋 1.5 的欄位），避免之後重構。

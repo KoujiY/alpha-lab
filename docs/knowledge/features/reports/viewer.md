@@ -38,6 +38,6 @@ related: [storage.md, ../portfolio/recommender.md]
 ## 修改時注意事項
 
 - 新 report type 要同時改三處：`api/types.ts::ReportType`、`ReportsPage::TYPE_OPTIONS`、`ReportCard::TYPE_BADGE`。
-- 細節頁不做獨立快取，吃 `useReport`（staleTime 60s）；若要離線瀏覽 / 全文搜，日後再接 service worker 或搜尋 index。
+- 細節頁不做獨立快取，吃 `useReport`（staleTime 60s）；**報告全文搜尋 / 離線快取已排入 Phase 6**（spec §15），屆時會評估 service worker + 搜尋 index（如 lunr / flexsearch）兩條路。
 - Markdown 元件覆寫在 `MarkdownRender`，改樣式就改那一檔；不要在各頁各自覆寫。
 - `ReportCard` 的 Link `to` 有 `encodeURIComponent(meta.id)`，後端 `GET /api/reports/{id}` 也接 encoded id → 新 id 規則若包含非 ASCII / `/` 要測 decode 是否正確。
