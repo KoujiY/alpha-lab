@@ -84,3 +84,19 @@ def test_list_matches_by_name_substring() -> None:
     body = resp.json()
     assert len(body) == 1
     assert body[0]["symbol"] == "2330"
+
+
+def test_list_accepts_limit_3000() -> None:
+    """Phase 8：/stocks 列表頁需要一次載入全市場（~2000 檔），上限提升到 3000。"""
+    test_engine = _make_test_engine()
+    _override_engine(test_engine)
+
+    from alpha_lab.storage.engine import session_scope
+    with session_scope() as s:
+        _seed_two_stocks(s)
+
+    with TestClient(app) as client:
+        resp = client.get("/api/stocks?limit=3000")
+
+    assert resp.status_code == 200
+    assert len(resp.json()) == 2

@@ -179,7 +179,7 @@ def _load_events(session: Session, symbol: str, limit: int) -> list[EventPoint]:
 @router.get("/stocks", response_model=list[StockMeta])
 async def list_stocks(
     q: str | None = Query(None, description="查詢代號或名稱（部分字串）"),
-    limit: int = Query(LIST_DEFAULT_LIMIT, ge=1, le=500),
+    limit: int = Query(LIST_DEFAULT_LIMIT, ge=1, le=3000),
 ) -> list[StockMeta]:
     with session_scope() as session:
         stmt = select(Stock)
