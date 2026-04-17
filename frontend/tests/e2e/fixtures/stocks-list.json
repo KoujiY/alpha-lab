@@ -1,0 +1,7 @@
+[
+  { "symbol": "2330", "name": "台積電", "industry": "半導體業", "listed_date": "1994-09-05" },
+  { "symbol": "2317", "name": "鴻海", "industry": "其他電子業", "listed_date": "1991-06-18" },
+  { "symbol": "2454", "name": "聯發科", "industry": "半導體業", "listed_date": "2001-07-23" },
+  { "symbol": "2412", "name": "中華電", "industry": "通信網路業", "listed_date": "2000-10-27" },
+  { "symbol": "6505", "name": "台塑化", "industry": "油電燃氣業", "listed_date": "2003-12-26" }
+]

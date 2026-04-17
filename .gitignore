@@ -23,6 +23,7 @@ env/
 *.egg-info/
 build/
 dist/
+uv.lock
 
 # Claude Code (CLAUDE.md 要 commit，settings 不要)
 .claude/settings.json

@@ -13,12 +13,15 @@
 ```
 docs/knowledge/
 ├── index.md                 # 本檔（總覽 + 維護規範）
-├── features/                # 五大功能模組（A~E）
-│   ├── data-panel/          # A：個股數據面板
+├── features/                # 五大功能模組（A~E）+ 輔助頁
+│   ├── data-panel/          # A：個股數據面板（/stocks/:symbol）
 │   ├── screener/            # B：選股篩選器
 │   ├── portfolio/           # C：組合推薦
 │   ├── tracking/            # D：組合追蹤
-│   └── education/           # E：嵌入式教學
+│   ├── education/           # E：嵌入式教學
+│   ├── reports/             # 分析回顧（/reports）
+│   ├── stocks/              # 股票瀏覽列表（/stocks，Phase 8）
+│   └── settings.md          # 偏好管理頁（/settings，Phase 8）
 ├── domain/                  # 投資領域邏輯（系統內部怎麼實作）
 ├── architecture/            # 系統架構（data models、API、資料流）
 ├── collectors/              # 數據抓取模組（Phase 1 起細化）

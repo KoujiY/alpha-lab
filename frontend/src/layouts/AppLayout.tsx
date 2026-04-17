@@ -18,6 +18,12 @@ export function AppLayout() {
                 alpha-lab
               </Link>
               <Link
+                to="/stocks"
+                className="text-sm text-slate-300 hover:text-sky-300"
+              >
+                股票
+              </Link>
+              <Link
                 to="/portfolios"
                 className="text-sm text-slate-300 hover:text-sky-300"
               >
@@ -34,6 +40,12 @@ export function AppLayout() {
                 className="text-sm text-slate-300 hover:text-sky-300"
               >
                 回顧
+              </Link>
+              <Link
+                to="/settings"
+                className="text-sm text-slate-300 hover:text-sky-300"
+              >
+                設定
               </Link>
             </div>
             <div className="flex items-center gap-3">

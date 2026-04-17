@@ -20,5 +20,16 @@
     "path": "analysis/stock-2330-2026-04-14.md",
     "summary_line": "Q1 財報亮眼，建議加碼",
     "starred": false
+  },
+  {
+    "id": "research-macro-2026-03-20",
+    "type": "research",
+    "title": "三月總經回顧",
+    "symbols": [],
+    "tags": ["macro"],
+    "date": "2026-03-20",
+    "path": "analysis/research-macro-2026-03-20.md",
+    "summary_line": "三月央行動向",
+    "starred": false
   }
 ]

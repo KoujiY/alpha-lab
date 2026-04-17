@@ -1,11 +1,21 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { deleteReport, updateReport } from "@/api/reports";
 import type { ReportMeta, ReportType } from "@/api/types";
 import { ReportCard } from "@/components/reports/ReportCard";
+import { ReportTimeline } from "@/components/reports/ReportTimeline";
 import { useReports } from "@/hooks/useReports";
+
+type ViewMode = "grid" | "timeline";
+const VIEW_STORAGE_KEY = "alpha-lab:reports-view-mode";
+
+function readInitialView(): ViewMode {
+  if (typeof window === "undefined") return "grid";
+  const raw = window.localStorage.getItem(VIEW_STORAGE_KEY);
+  return raw === "timeline" ? "timeline" : "grid";
+}
 
 const TYPE_OPTIONS: { value: ReportType | "all"; label: string }[] = [
   { value: "all", label: "全部" },
@@ -19,7 +29,12 @@ const TYPE_OPTIONS: { value: ReportType | "all"; label: string }[] = [
 export function ReportsPage() {
   const [typeFilter, setTypeFilter] = useState<ReportType | "all">("all");
   const [query, setQuery] = useState("");
+  const [viewMode, setViewMode] = useState<ViewMode>(readInitialView);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    window.localStorage.setItem(VIEW_STORAGE_KEY, viewMode);
+  }, [viewMode]);
 
   const params = {
     ...(typeFilter !== "all" ? { type: typeFilter } : {}),
@@ -92,22 +107,52 @@ export function ReportsPage() {
         />
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {TYPE_OPTIONS.map((opt) => (
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-2">
+          {TYPE_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setTypeFilter(opt.value)}
+              aria-pressed={typeFilter === opt.value}
+              className={`rounded border px-3 py-1 text-sm ${
+                typeFilter === opt.value
+                  ? "border-sky-500 bg-sky-500/20 text-sky-200"
+                  : "border-slate-700 text-slate-400 hover:border-slate-500"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex overflow-hidden rounded border border-slate-700 text-xs">
           <button
-            key={opt.value}
             type="button"
-            onClick={() => setTypeFilter(opt.value)}
-            aria-pressed={typeFilter === opt.value}
-            className={`rounded border px-3 py-1 text-sm ${
-              typeFilter === opt.value
-                ? "border-sky-500 bg-sky-500/20 text-sky-200"
-                : "border-slate-700 text-slate-400 hover:border-slate-500"
+            onClick={() => setViewMode("grid")}
+            aria-pressed={viewMode === "grid"}
+            data-testid="view-grid"
+            className={`px-3 py-1 ${
+              viewMode === "grid"
+                ? "bg-sky-500/20 text-sky-200"
+                : "text-slate-400 hover:bg-slate-800"
             }`}
           >
-            {opt.label}
+            🔲 卡片
           </button>
-        ))}
+          <button
+            type="button"
+            onClick={() => setViewMode("timeline")}
+            aria-pressed={viewMode === "timeline"}
+            data-testid="view-timeline"
+            className={`border-l border-slate-700 px-3 py-1 ${
+              viewMode === "timeline"
+                ? "bg-sky-500/20 text-sky-200"
+                : "text-slate-400 hover:bg-slate-800"
+            }`}
+          >
+            📅 時間軸
+          </button>
+        </div>
       </div>
 
       {isLoading ? <p className="text-slate-400">載入中...</p> : null}
@@ -119,8 +164,14 @@ export function ReportsPage() {
       {data ? (
         data.length === 0 ? (
           <p className="text-slate-500">目前沒有符合條件的報告。</p>
+        ) : viewMode === "timeline" ? (
+          <ReportTimeline
+            reports={data}
+            onToggleStar={handleToggleStar}
+            onDelete={handleDelete}
+          />
         ) : (
-          <ul className="grid gap-3 md:grid-cols-2">
+          <ul className="grid gap-3 md:grid-cols-2" data-testid="reports-grid">
             {data.map((meta) => (
               <ReportCard
                 key={meta.id}

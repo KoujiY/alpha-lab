@@ -93,6 +93,19 @@ test("can delete report after confirm", async ({ page }) => {
   // Asserting the button was clickable completes the flow test.
 });
 
+test("view toggle switches to timeline grouped by month and persists", async ({
+  page,
+}) => {
+  await page.goto("/reports");
+  await expect(page.getByTestId("reports-grid")).toBeVisible();
+  await page.getByTestId("view-timeline").click();
+  await expect(page.getByTestId("reports-timeline")).toBeVisible();
+  await expect(page.getByTestId("timeline-month-2026-04")).toBeVisible();
+  await expect(page.getByTestId("timeline-month-2026-03")).toBeVisible();
+  await page.reload();
+  await expect(page.getByTestId("reports-timeline")).toBeVisible();
+});
+
 test("search input filters reports via query param", async ({ page }) => {
   let lastRequestedUrl = "";
   await page.route("**/api/reports?**", (route: Route) => {
