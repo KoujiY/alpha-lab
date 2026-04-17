@@ -25,8 +25,10 @@
 | `frontend/src/hooks/useStocks.ts` | `useStocks(q?)` TanStack Query hook |
 | `frontend/src/hooks/useFavorites.ts` | 反應式收藏 hook（包 `favorites.ts`，提供 React state） |
 | `frontend/src/lib/reportTimeline.ts` | `groupReportsByMonth(reports)` 純函式 |
-| `frontend/tests/unit/reportTimeline.test.ts` | groupReportsByMonth 單元測試 |
-| `frontend/tests/unit/useFavorites.test.ts` | useFavorites hook 單元測試 |
+| `frontend/src/components/reports/ReportTimeline.tsx` | Timeline view 容器（月份分組 + sticky heading，直接重用 `ReportCard`） |
+| `frontend/tests/lib/reportTimeline.test.ts` | groupReportsByMonth 單元測試 |
+| `frontend/tests/lib/useFavorites.test.ts` | useFavorites hook 單元測試 |
+| `frontend/tests/components/SettingsPage.test.tsx` | SettingsPage 元件測試（補 review 回饋後加入：快取清空流程、unknown symbol fallback） |
 | `frontend/tests/e2e/stocks-list.spec.ts` | `/stocks` E2E |
 | `frontend/tests/e2e/settings.spec.ts` | `/settings` E2E |
 | `frontend/tests/e2e/fixtures/stocks-list.json` | stocks list fixture |
