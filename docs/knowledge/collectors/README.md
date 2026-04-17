@@ -11,6 +11,7 @@
 | `mops.md` | MOPS 月營收（t187ap05_L）、季報 income（t187ap06_L_ci）+ balance（t187ap07_L_ci）；cashflow 延至 Phase 3（走 t164sb05 HTML） | Phase 1 / 1.5 擴充 |
 | `mops-cashflow.md` | MOPS t164sb05 HTML 爬現金流量表（FCF 評分） | Phase 3 |
 | `events.md` | 上市即時重大訊息（OpenAPI t187ap04_L） | Phase 1.5 |
+| `yahoo.md` | Yahoo Finance Chart API（TWSE 備援） | Phase 7B.1 |
 
 ## 規劃中（尚未建立）
 

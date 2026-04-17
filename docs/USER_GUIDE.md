@@ -196,6 +196,18 @@ nav(t) = Σ( weight_i × today_close_i / base_close_i )
 
 此外，Phase 7A 在後端 schema 層加了兩道防線：同一組合不能有重複 symbol、持股權重總和需在 `|sum - 1.0| ≤ 1e-6` 內，違反會回 422；這避免前端 `buildMergedHoldings` 合成時意外把同檔股票重複加入或累積浮點誤差。
 
+### 資料來源備援
+
+- 預設每日價格來自 TWSE（台灣證券交易所）
+- 若 TWSE 暫時故障，系統會自動 fallback 到 Yahoo Finance；資料庫 `prices_daily.source` 會標記來源
+- Yahoo 是非官方 API、準確度偶有偏差，僅作為備援；若頻繁使用 Yahoo 資料請自行交叉比對
+
+### 計算後指標（供 Claude Code 使用）
+
+- `data/processed/indicators/<symbol>.json`：MA / RSI / 52 週高低比
+- `data/processed/ratios/<symbol>.json`：PE / ROE / 毛利率 / 負債比 / FCF
+- 由 daily_collect 或手動觸發 `PROCESSED_INDICATORS` / `PROCESSED_RATIOS` 更新
+
 ### 術語庫
 
 - 路徑：`backend/src/alpha_lab/glossary/terms.yaml`
@@ -219,7 +231,9 @@ nav(t) = Σ( weight_i × today_close_i / base_close_i )
 | 5 | 選股篩選器（B）✅ |
 | 6 | 組合追蹤 + 報告管理 + 教學開關（D）✅ |
 | 7A | 組合追蹤強化（血緣 + schema 驗證）✅ |
-| 7B | 數據源與自動化（Yahoo 備援、新聞彙整、每日簡報、離線快取） |
+| 7B.1 | 數據源擴充（Yahoo 備援、processed 指標 JSON、daily_collect 串接）✅ |
+| 7B.2 | 內容自動化（新聞彙整、每日簡報） |
+| 7B.3 | UX 與快取（報告離線快取、加入組合強化） |
 | 8 | UI 升級 |
 | 9 | 頁面擴充 |
 
@@ -264,4 +278,4 @@ A：Phase 4 起，分析報告會儲存在 `data/reports/analysis/<id>.md`，同
 
 ---
 
-_文件同步於 Phase 6。後續 Phase 會持續擴充。_
+_文件同步於 Phase 7B.1。後續 Phase 會持續擴充。_

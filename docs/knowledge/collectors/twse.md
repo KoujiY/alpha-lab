@@ -66,6 +66,10 @@ payload 結構為多層 tables：
 
 **預防**：`daily_collect.py --symbols` 明示股票清單、避免誤觸 `--all` 跑全 watchlist（2026-04-15 已加保險 flag）。
 
+### Fallback 到 Yahoo（Phase 7B.1）
+
+`jobs/service.py::TWSE_PRICES` 捕捉非 WAF 例外後會透過 `_fallback.should_fallback_to_yahoo` 決定是否轉 `collectors/yahoo.fetch_yahoo_daily_prices`。WAF 錯誤與「沒有符合條件」不 fallback。寫入 `prices_daily` 時帶 `source="twse"` / `"yahoo"`，既有無 source 的舊 row 會被保留（新 row source=None 不覆寫）。
+
 ### 通用坑
 
 - TWSE 對短時間多次請求會擋 IP；smoke 測試需手動節流（1 分鐘以上）
