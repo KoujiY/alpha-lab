@@ -199,6 +199,16 @@ async def run_daily_collect(
         )
         results.append((_label, status, summary))
 
+    # Phase 7B.2：每日簡報
+    briefing_label = "daily briefing"
+    status, summary = await _run_one(
+        briefing_label,
+        JobType.DAILY_BRIEFING,
+        {"trade_date": trade_date_str},
+        session_factory,
+    )
+    results.append((briefing_label, status, summary))
+
     print("\n=== summary ===")
     for label, status, summary in results:
         print(f"  [{label}] {status}: {summary}")

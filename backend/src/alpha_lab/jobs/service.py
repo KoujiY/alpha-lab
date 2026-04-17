@@ -358,6 +358,25 @@ async def _dispatch(
                 total += 1
         return f"wrote {total} ratios json files for {as_of}"
 
+    if job_type is JobType.DAILY_BRIEFING:
+        trade_date_str = params.get("trade_date")
+        td = (
+            date.fromisoformat(str(trade_date_str))
+            if trade_date_str
+            else datetime.now(UTC).date()
+        )
+        from alpha_lab.briefing.daily import build_daily_briefing
+        from alpha_lab.reports.service import create_daily_report
+
+        body = build_daily_briefing(session_factory, td)
+        summary = f"{td.isoformat()} 每日簡報"
+        create_daily_report(
+            trade_date=td,
+            body_markdown=body,
+            summary_line=summary,
+        )
+        return f"daily briefing for {td.isoformat()} written"
+
     raise ValueError(f"unknown job type: {job_type}")
 
 

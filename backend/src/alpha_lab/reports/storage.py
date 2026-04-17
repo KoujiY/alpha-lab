@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import yaml
@@ -150,3 +150,22 @@ def update_in_index(report_id: str, updates: dict[str, object]) -> ReportMeta | 
     items[target_idx] = updated
     save_index(items)
     return updated
+
+
+def write_daily_markdown(report_date: date, body: str) -> Path:
+    """寫入 daily/<YYYY-MM-DD>.md。覆寫同日既有檔案。"""
+    root = get_reports_root()
+    daily_dir = root / "daily"
+    daily_dir.mkdir(parents=True, exist_ok=True)
+    path = daily_dir / f"{report_date.isoformat()}.md"
+    path.write_text(body.strip() + "\n", encoding="utf-8")
+    return path
+
+
+def read_daily_markdown(report_date: date) -> str | None:
+    """讀取 daily/<YYYY-MM-DD>.md 內容，不存在回傳 None。"""
+    root = get_reports_root()
+    path = root / "daily" / f"{report_date.isoformat()}.md"
+    if not path.exists():
+        return None
+    return path.read_text(encoding="utf-8")

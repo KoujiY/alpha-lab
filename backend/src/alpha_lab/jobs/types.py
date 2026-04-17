@@ -17,3 +17,4 @@ class JobType(StrEnum):
     YAHOO_PRICES = "yahoo_prices"
     PROCESSED_INDICATORS = "processed_indicators"
     PROCESSED_RATIOS = "processed_ratios"
+    DAILY_BRIEFING = "daily_briefing"

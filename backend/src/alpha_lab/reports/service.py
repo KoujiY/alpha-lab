@@ -11,6 +11,7 @@ from alpha_lab.reports.storage import (
     read_report_markdown,
     update_in_index,
     upsert_in_index,
+    write_daily_markdown,
     write_report_markdown,
 )
 from alpha_lab.schemas.portfolio import RecommendResponse
@@ -42,6 +43,8 @@ def _build_report_id(
         return f"portfolio-{d}"
     if report_type == "events":
         return f"events-{d}"
+    if report_type == "daily":
+        return f"daily-{d}"
     raise ValueError(f"unknown report type: {report_type}")
 
 
@@ -218,3 +221,31 @@ def update_report(report_id: str, updates: ReportUpdate) -> ReportMeta | None:
 def delete_report(report_id: str) -> bool:
     """刪除報告檔案及 index 條目，成功回傳 True，找不到回傳 False。"""
     return delete_report_files(report_id)
+
+
+def create_daily_report(
+    trade_date: date_type,
+    body_markdown: str,
+    summary_line: str = "",
+) -> ReportMeta:
+    """寫入 daily/<date>.md 並更新 index.json。"""
+    report_id = f"daily-{trade_date.isoformat()}"
+    write_daily_markdown(trade_date, body_markdown)
+
+    meta = ReportMeta(
+        id=report_id,
+        type="daily",
+        title=f"每日市場簡報 {trade_date.isoformat()}",
+        symbols=[],
+        tags=["daily", "briefing"],
+        date=trade_date,
+        path=f"daily/{trade_date.isoformat()}.md",
+        summary_line=summary_line,
+        starred=False,
+    )
+    upsert_in_index(meta)
+
+    if summary_line:
+        append_summary(trade_date.isoformat(), summary_line)
+
+    return meta

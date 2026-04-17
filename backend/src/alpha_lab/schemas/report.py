@@ -8,7 +8,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-ReportType = Literal["stock", "portfolio", "events", "research"]
+ReportType = Literal["stock", "portfolio", "events", "research", "daily"]
 
 
 class ReportMeta(BaseModel):
