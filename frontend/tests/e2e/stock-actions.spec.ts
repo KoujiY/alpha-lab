@@ -107,6 +107,7 @@ test("加入組合：今日報價不齊 → 彈 BaseDateConfirmDialog", async ({
         resolved_date: "2026-04-15",
         today_available: false,
         missing_today_symbols: ["2330"],
+        symbol_statuses: { "2330": "today_missing" },
       },
     }),
   );
@@ -173,6 +174,7 @@ test("加入組合時 POST payload 帶 parent_id 血緣", async ({ page }) => {
         resolved_date: "2026-04-17",
         today_available: true,
         missing_today_symbols: [],
+        symbol_statuses: {},
       },
     }),
   );

@@ -148,7 +148,7 @@ export interface L2Topic extends L2TopicMeta {
   body_markdown: string;
 }
 
-export type ReportType = "stock" | "portfolio" | "events" | "research";
+export type ReportType = "stock" | "portfolio" | "events" | "research" | "daily";
 
 export interface ReportMeta {
   id: string;
@@ -259,9 +259,12 @@ export interface PerformanceResponse {
   parent_nav_at_fork: number | null;
 }
 
+export type SymbolPriceStatus = "no_data" | "stale" | "today_missing";
+
 export interface BaseDateProbe {
   target_date: string;
   resolved_date: string | null;
   today_available: boolean;
   missing_today_symbols: string[];
+  symbol_statuses: Record<string, SymbolPriceStatus>;
 }

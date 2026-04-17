@@ -255,19 +255,19 @@ def test_save_portfolio_allow_fallback_raises_when_no_common_date(sample_prices)
 
 
 def test_probe_base_date_returns_today_when_all_present(sample_prices):
-    resolved, missing = probe_base_date(["2330", "2317"], date(2026, 4, 17))
+    resolved, missing, _statuses = probe_base_date(["2330", "2317"], date(2026, 4, 17))
     assert resolved == date(2026, 4, 17)
     assert missing == []
 
 
 def test_probe_base_date_reports_missing_today(sample_prices):
-    resolved, missing = probe_base_date(["2330", "2317"], date(2026, 4, 18))
+    resolved, missing, _statuses = probe_base_date(["2330", "2317"], date(2026, 4, 18))
     assert resolved == date(2026, 4, 17)
     assert sorted(missing) == ["2317", "2330"]
 
 
 def test_probe_base_date_returns_none_when_no_history(sample_prices):
-    resolved, missing = probe_base_date(["9999"], date(2026, 4, 17))
+    resolved, missing, _statuses = probe_base_date(["9999"], date(2026, 4, 17))
     assert resolved is None
     assert missing == ["9999"]
 

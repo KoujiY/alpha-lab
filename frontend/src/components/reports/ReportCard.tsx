@@ -7,6 +7,7 @@ const TYPE_BADGE: Record<ReportMeta["type"], { label: string; className: string 
   portfolio: { label: "組合", className: "bg-indigo-500/20 text-indigo-300" },
   events: { label: "事件", className: "bg-amber-500/20 text-amber-300" },
   research: { label: "研究", className: "bg-emerald-500/20 text-emerald-300" },
+  daily: { label: "每日簡報", className: "bg-violet-500/20 text-violet-300" },
 };
 
 export interface ReportCardProps {

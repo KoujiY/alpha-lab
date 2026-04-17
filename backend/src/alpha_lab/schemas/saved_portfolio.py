@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import date as date_type
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -78,15 +79,24 @@ class PerformanceResponse(BaseModel):
     parent_nav_at_fork: float | None = None
 
 
+SymbolPriceStatus = Literal["no_data", "stale", "today_missing"]
+
+
 class BaseDateProbe(BaseModel):
     """`GET /api/portfolios/saved/probe` 回傳。
 
     `today_available` 為 True 時前端可直接 strict save；否則前端應跳 dialog
     顯示 `resolved_date` 與 `missing_today_symbols`，讓使用者決定要先補抓
     報價還是同意以 `resolved_date` 為基準儲存。
+
+    `symbol_statuses` 為每個缺報價 symbol 的原因分類：
+    - ``no_data``：該 symbol 在 DB 完全無報價紀錄
+    - ``stale``：有報價但最新報價距 target_date > 7 天（可能停牌/下市）
+    - ``today_missing``：有近期報價但今日無（盤中或非交易日）
     """
 
     target_date: date_type
     resolved_date: date_type | None
     today_available: bool
     missing_today_symbols: list[str]
+    symbol_statuses: dict[str, SymbolPriceStatus] = {}

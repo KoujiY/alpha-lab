@@ -66,23 +66,38 @@ def write_report_markdown(
     report_id: str,
     body: str,
     frontmatter: dict[str, object],
+    *,
+    relative_path: str | None = None,
 ) -> Path:
-    """寫入 analysis/<id>.md，frontmatter + body。"""
+    """寫入報告 markdown；若提供 relative_path 則使用該路徑，否則 analysis/<id>.md。"""
 
     root = get_reports_root()
     _ensure_dirs(root)
-    path = root / "analysis" / f"{report_id}.md"
+    if relative_path:
+        path = root / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+    else:
+        path = root / "analysis" / f"{report_id}.md"
     fm_yaml = yaml.safe_dump(frontmatter, allow_unicode=True, sort_keys=False).strip()
     content = f"---\n{fm_yaml}\n---\n\n{body.strip()}\n"
     path.write_text(content, encoding="utf-8")
     return path
 
 
-def read_report_markdown(report_id: str) -> tuple[dict[str, object], str] | None:
-    """回 (frontmatter_dict, body) 或 None。"""
+def read_report_markdown(
+    report_id: str, *, relative_path: str | None = None
+) -> tuple[dict[str, object], str] | None:
+    """回 (frontmatter_dict, body) 或 None。
+
+    ``relative_path`` 若提供，使用 ``reports_root / relative_path`` 定位檔案；
+    否則退回舊行為 ``analysis/{report_id}.md``。
+    """
 
     root = get_reports_root()
-    path = root / "analysis" / f"{report_id}.md"
+    if relative_path:
+        path = root / relative_path
+    else:
+        path = root / "analysis" / f"{report_id}.md"
     if not path.exists():
         return None
 
@@ -124,13 +139,17 @@ def append_summary(iso_date: str, summary_line: str) -> None:
 
 
 def delete_report_files(report_id: str) -> bool:
-    """刪 analysis/<id>.md 並從 index.json 移除。回傳是否刪到。"""
+    """刪報告 markdown 檔案並從 index.json 移除。回傳是否刪到。"""
 
     items = load_index()
+    target = next((m for m in items if m.id == report_id), None)
     before = len(items)
     items = [m for m in items if m.id != report_id]
     root = get_reports_root()
-    md_path = root / "analysis" / f"{report_id}.md"
+    if target:
+        md_path = root / target.path
+    else:
+        md_path = root / "analysis" / f"{report_id}.md"
     if md_path.exists():
         md_path.unlink()
     save_index(items)

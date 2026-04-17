@@ -82,12 +82,13 @@ async def probe_endpoint(
     if not sym_list:
         raise HTTPException(status_code=400, detail="symbols required")
     target = date_type.today()
-    resolved, missing = probe_base_date(sym_list, target)
+    resolved, missing, statuses = probe_base_date(sym_list, target)
     return BaseDateProbe(
         target_date=target,
         resolved_date=resolved,
         today_available=len(missing) == 0,
         missing_today_symbols=missing,
+        symbol_statuses=statuses,
     )
 
 

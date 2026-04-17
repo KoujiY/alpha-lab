@@ -8,6 +8,7 @@ from alpha_lab.reports.storage import (
     append_summary,
     delete_report_files,
     load_index,
+    read_daily_markdown,
     read_report_markdown,
     update_in_index,
     upsert_in_index,
@@ -192,7 +193,12 @@ def get_report(report_id: str) -> ReportDetail | None:
     meta = next((m for m in items if m.id == report_id), None)
     if meta is None:
         return None
-    fm_body = read_report_markdown(report_id)
+    if meta.type == "daily":
+        body = read_daily_markdown(date_type.fromisoformat(str(meta.date)))
+        if body is None:
+            return None
+        return ReportDetail(**meta.model_dump(), body_markdown=body)
+    fm_body = read_report_markdown(report_id, relative_path=meta.path)
     if fm_body is None:
         return None
     _, body = fm_body
@@ -208,13 +214,13 @@ def update_report(report_id: str, updates: ReportUpdate) -> ReportMeta | None:
     updated = update_in_index(report_id, payload)
     if updated is None:
         return None
-    fm_body = read_report_markdown(report_id)
+    fm_body = read_report_markdown(report_id, relative_path=updated.path)
     if fm_body is not None:
         fm, body = fm_body
         for k in ("title", "tags", "summary_line"):
             if k in payload:
                 fm[k] = payload[k]
-        write_report_markdown(report_id, body, fm)
+        write_report_markdown(report_id, body, fm, relative_path=updated.path)
     return updated
 
 

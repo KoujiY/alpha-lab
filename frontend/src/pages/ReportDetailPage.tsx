@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -5,12 +6,19 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { deleteReport, updateReport } from "@/api/reports";
 import { MarkdownRender } from "@/components/MarkdownRender";
 import { useReport } from "@/hooks/useReports";
+import { getCachedReport } from "@/lib/reportCache";
 
 export function ReportDetailPage() {
   const { reportId } = useParams<{ reportId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data, isLoading, error } = useReport(reportId ?? null);
+
+  const [isCached, setIsCached] = useState(false);
+  useEffect(() => {
+    if (!reportId) return;
+    getCachedReport(reportId).then((c) => setIsCached(c !== undefined));
+  }, [reportId, data]);
 
   const starMutation = useMutation({
     mutationFn: (starred: boolean) =>
@@ -88,7 +96,17 @@ export function ReportDetailPage() {
           <span>{data.date}</span>
           {data.symbols.length > 0 ? <span>{data.symbols.join(", ")}</span> : null}
         </div>
-        <h1 className="text-2xl font-bold">{data.title}</h1>
+        <h1 className="text-2xl font-bold">
+          {data.title}
+          {isCached && (
+            <span
+              className="ml-2 align-middle rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-normal text-emerald-300"
+              data-testid="cache-badge"
+            >
+              已快取
+            </span>
+          )}
+        </h1>
         {data.summary_line ? (
           <p className="text-sm text-slate-400">{data.summary_line}</p>
         ) : null}

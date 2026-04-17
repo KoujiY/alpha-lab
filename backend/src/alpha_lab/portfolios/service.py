@@ -16,6 +16,7 @@ from alpha_lab.schemas.saved_portfolio import (
     SavedPortfolioCreate,
     SavedPortfolioDetail,
     SavedPortfolioMeta,
+    SymbolPriceStatus,
 )
 from alpha_lab.storage.engine import session_scope
 from alpha_lab.storage.models import PortfolioSnapshot, PriceDaily, SavedPortfolio
@@ -89,32 +90,50 @@ def _resolve_common_base_date(
     return max(common_dates) if common_dates else None
 
 
+STALE_THRESHOLD_DAYS = 7
+
+
 def probe_base_date(
     symbols: list[str], target_date: date_type
-) -> tuple[date_type | None, list[str]]:
-    """檢查 target_date 當日哪些 symbols 缺報價，並回傳「全有報價的最近交易日」。
+) -> tuple[date_type | None, list[str], dict[str, SymbolPriceStatus]]:
+    """檢查 target_date 當日哪些 symbols 缺報價，回傳分類狀態。
 
-    回傳 (resolved_date, missing_today_symbols)：
-    - resolved_date：所有 symbols 都有報價、且 <= target_date 的最大交易日；
-      若任一 symbol 完全無 <= target_date 的紀錄，回傳 None。
-    - missing_today_symbols：在 target_date 當日缺報價的 symbol 清單。
-
-    若 missing_today_symbols == []，前端可直接 strict save；否則應跳 dialog
-    讓使用者決定是先補抓資料還是同意以 resolved_date 為基準儲存。
+    回傳 (resolved_date, missing_today_symbols, symbol_statuses)：
+    - resolved_date：所有 symbols 都有報價、且 <= target_date 的最大交易日
+    - missing_today_symbols：在 target_date 當日缺報價的 symbol 清單
+    - symbol_statuses：每個缺報價 symbol 的原因分類
+      - "no_data"：該 symbol 在 DB 完全無報價紀錄
+      - "stale"：有報價但最新報價距 target_date > 7 天
+      - "today_missing"：有近期報價但今日無
     """
 
     with session_scope() as session:
         resolved = _resolve_common_base_date(session, symbols, target_date)
         missing_today: list[str] = []
+        statuses: dict[str, SymbolPriceStatus] = {}
         for sym in symbols:
             has_today = session.scalar(
                 select(PriceDaily.trade_date)
                 .where(PriceDaily.symbol == sym)
                 .where(PriceDaily.trade_date == target_date)
             )
-            if has_today is None:
-                missing_today.append(sym)
-        return resolved, missing_today
+            if has_today is not None:
+                continue
+            missing_today.append(sym)
+            latest = session.scalar(
+                select(PriceDaily.trade_date)
+                .where(PriceDaily.symbol == sym)
+                .where(PriceDaily.trade_date <= target_date)
+                .order_by(PriceDaily.trade_date.desc())
+                .limit(1)
+            )
+            if latest is None:
+                statuses[sym] = "no_data"
+            elif (target_date - latest).days > STALE_THRESHOLD_DAYS:
+                statuses[sym] = "stale"
+            else:
+                statuses[sym] = "today_missing"
+        return resolved, missing_today, statuses
 
 
 def save_portfolio(

@@ -13,6 +13,7 @@ const TYPE_OPTIONS: { value: ReportType | "all"; label: string }[] = [
   { value: "portfolio", label: "組合" },
   { value: "events", label: "事件" },
   { value: "research", label: "研究" },
+  { value: "daily", label: "每日簡報" },
 ];
 
 export function ReportsPage() {
