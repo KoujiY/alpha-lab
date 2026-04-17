@@ -473,8 +473,8 @@ GET /api/glossary/K線
 | 7B.1 | ✅ 完成（2026-04-18） | 數據源擴充 | Yahoo Finance fallback collector、prices_daily.source、data/processed/ 指標與比率 JSON（atomic write）、YAHOO_PRICES / PROCESSED_INDICATORS / PROCESSED_RATIOS JobType；daily_collect 尾端自動跑 processed |
 | 7B.2 | ✅ 完成（2026-04-18） | 內容自動化 | Daily Briefing（market overview / institutional / events / portfolio tracking 四段式 Markdown）、`DAILY_BRIEFING` JobType、`daily_collect.py` 尾端自動觸發、`data/reports/daily/` 儲存 + index 同步；新聞彙整暫以 DB events 彙整為主，外部新聞源留待後續 |
 | 7B.3 | ✅ 完成（2026-04-18） | UX 與快取 | 報告 IndexedDB 離線快取（`idb-keyval` + `getReportWithCache` fallback + 已快取 badge）、`probe_base_date` 新增 `symbol_statuses`（`no_data`/`stale`/`today_missing`）、`BaseDateConfirmDialog` 依分類分組顯示引導訊息 |
-| 8 | 未開始 | UI 升級 | shadcn/ui 元件庫遷移、K 線圖改用 lightweight-charts、列表 / 卡片 / 詳情頁的動作按鈕（收藏 ☆★、刪除、編輯等）一律改用 icon button（搭 `aria-label` + hover tooltip；`data-testid` 保留不變以維持 E2E）；**「加入組合」兩步 wizard UI**（選基底組合 → 預覽 delta-weight 套用後的新權重表 + 可手動微調每檔 → 確認後建立新組合，把權重決策從黑箱改為顯性化）；**Soft limit warnings**（持股數 > 20、單檔權重 > 40%、極小權重 < 0.5% 跳警告，不 hard block） |
-| 9 | 未開始 | 頁面擴充 | `/stocks` 股票瀏覽列表頁、`/settings` 設定頁（localStorage 偏好管理）、回顧時間軸瀏覽模式 |
+| 8 | 未開始 | 頁面擴充 | `/stocks` 股票瀏覽列表頁、`/settings` 設定頁（localStorage 偏好管理）、回顧時間軸瀏覽模式 |
+| 9 | 未開始 | UI 升級 | shadcn/ui 元件庫遷移、K 線圖改用 lightweight-charts、列表 / 卡片 / 詳情頁的動作按鈕（收藏 ☆★、刪除、編輯等）一律改用 icon button（搭 `aria-label` + hover tooltip；`data-testid` 保留不變以維持 E2E）；**「加入組合」兩步 wizard UI**（選基底組合 → 預覽 delta-weight 套用後的新權重表 + 可手動微調每檔 → 確認後建立新組合，把權重決策從黑箱改為顯性化）；**Soft limit warnings**（持股數 > 20、單檔權重 > 40%、極小權重 < 0.5% 跳警告，不 hard block） |
 
 **Phase 1 vs 1.5 切分理由**：Phase 1 先打通「抓取 → 落庫 → API 觸發」的核心管線，驗證 job 系統與資料流設計正確；季報、事件等複雜度高的 collector 放 Phase 1.5。schema 一次定義完整（Phase 1 建表涵蓋 1.5 的欄位），避免之後重構。
 

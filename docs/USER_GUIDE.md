@@ -256,8 +256,8 @@ type ..\data\reports\daily\2026-04-17.md
 | 7B.1 | 數據源擴充（Yahoo 備援、processed 指標 JSON、daily_collect 串接）✅ |
 | 7B.2 | 內容自動化（每日市場簡報）✅ |
 | 7B.3 | UX 與快取（報告離線快取、加入組合強化）✅ |
-| 8 | UI 升級 |
-| 9 | 頁面擴充 |
+| 8 | 頁面擴充 |
+| 9 | UI 升級 |
 
 ## Rebuild 本地資料庫
 
