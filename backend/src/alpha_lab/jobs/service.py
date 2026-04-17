@@ -9,12 +9,16 @@ import asyncio
 import json
 import logging
 from datetime import UTC, date, datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 import httpx
+from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
+from alpha_lab.analysis.indicators import compute_indicators
 from alpha_lab.analysis.pipeline import score_all
+from alpha_lab.analysis.ratios import compute_ratios
 from alpha_lab.collectors._fallback import should_fallback_to_yahoo
 from alpha_lab.collectors._twse_common import TWSERateLimitError
 from alpha_lab.collectors.mops import fetch_latest_monthly_revenues
@@ -39,8 +43,10 @@ from alpha_lab.collectors.twse_institutional import fetch_institutional_trades
 from alpha_lab.collectors.twse_margin import fetch_margin_trades
 from alpha_lab.collectors.twse_stock_info import fetch_stock_info
 from alpha_lab.collectors.yahoo import YahooFetchError, fetch_yahoo_daily_prices
+from alpha_lab.config import get_settings
 from alpha_lab.jobs.types import JobType
-from alpha_lab.storage.models import Job
+from alpha_lab.storage.models import Job, PriceDaily
+from alpha_lab.storage.processed_store import write_indicators_json, write_ratios_json
 
 logger = logging.getLogger(__name__)
 
@@ -306,7 +312,58 @@ async def _dispatch(
             session.commit()
         return f"upserted {n} price rows from yahoo for {symbol} {start}~{end}"
 
+    if job_type is JobType.PROCESSED_INDICATORS:
+        symbols = params.get("symbols") or []
+        settings = get_settings_for_processed()
+        processed_dir = Path(settings.processed_dir)
+        processed_dir.mkdir(parents=True, exist_ok=True)
+        total = 0
+        with session_factory() as session:
+            for sym in symbols:
+                rows = session.execute(
+                    select(
+                        PriceDaily.trade_date, PriceDaily.close,
+                        PriceDaily.high, PriceDaily.low,
+                    )
+                    .where(PriceDaily.symbol == sym)
+                    .order_by(PriceDaily.trade_date.asc())
+                ).all()
+                series = compute_indicators(
+                    [(r[0], float(r[1]), float(r[2]), float(r[3])) for r in rows],
+                )
+                if series.as_of is None:
+                    continue
+                write_indicators_json(
+                    base_dir=processed_dir, symbol=sym, series=series,
+                )
+                total += 1
+        return f"wrote {total} indicators json files"
+
+    if job_type is JobType.PROCESSED_RATIOS:
+        symbols = params.get("symbols") or []
+        as_of_str = params.get("as_of")
+        as_of = (
+            date.fromisoformat(str(as_of_str))
+            if as_of_str
+            else datetime.now(UTC).date()
+        )
+        settings = get_settings_for_processed()
+        processed_dir = Path(settings.processed_dir)
+        processed_dir.mkdir(parents=True, exist_ok=True)
+        total = 0
+        with session_factory() as session:
+            for sym in symbols:
+                snap = compute_ratios(session, sym, as_of)
+                write_ratios_json(base_dir=processed_dir, snap=snap)
+                total += 1
+        return f"wrote {total} ratios json files for {as_of}"
+
     raise ValueError(f"unknown job type: {job_type}")
+
+
+def get_settings_for_processed() -> Any:
+    """獨立取出供測試 monkeypatch（直接 patch get_settings 會影響其他模組）。"""
+    return get_settings()
 
 
 def _last_day_of_month(ym_date: date) -> date:

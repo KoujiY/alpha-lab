@@ -1,5 +1,7 @@
 """應用設定，從環境變數讀取，預設值用於開發。"""
 
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -10,6 +12,9 @@ class Settings(BaseSettings):
 
     http_timeout_seconds: float = 30.0
     http_user_agent: str = "alpha-lab/0.1.0 (+https://github.com/local)"
+
+    processed_dir: Path = Path("data/processed")
+    yahoo_enabled: bool = True
 
 
 def get_settings() -> Settings:
