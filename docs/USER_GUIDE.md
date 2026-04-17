@@ -237,6 +237,35 @@ type ..\data\reports\daily\2026-04-17.md
 - 編輯後重啟 backend 才會生效（`load_terms` 有 lru_cache）
 - 新增術語：只需編輯 yaml；`<TermTooltip term="新key">...</TermTooltip>` 即可套用
 
+### 股票瀏覽列表（Phase 8）✅
+
+Header 點「股票」進 `/stocks`，顯示全市場上市公司列表：
+
+- **搜尋**：右上方輸入框可對代號或名稱做 substring 比對（前端 filter，不會重抓 API）
+- **產業篩選**：下拉式選單列出所有已登記產業，選一項只留該產業
+- **收藏**：最左欄 ☆ / ★ 按鈕 toggle 收藏；收藏的股票會置頂排序
+- **跳轉個股頁**：點公司名稱即跳到 `/stocks/:symbol` 詳細頁
+- 計數列：「共 N 檔（已收藏 M 檔）」即時反映當前 filter 結果
+
+資料來源：`stocks` 表（由 Pre-Phase 4 `twse_stock_info` collector 從 TWSE `t187ap03_L` 每日更新）。首次進頁面會一次載入全市場 payload（`?limit=3000`）後前端操作均在記憶體進行。
+
+### 偏好設定（Phase 8）✅
+
+Header 點「設定」進 `/settings`，一頁管理三類使用者偏好（全部存在瀏覽器 localStorage，不同瀏覽器 / 裝置不共用）：
+
+1. **教學密度**：三個 radio（完整 / 精簡 / 關閉），與 header 右上的 📖 toggle 同步
+2. **收藏股票**：顯示目前收藏清單，每筆可按「移除」；空清單會提示去 `/stocks` 加星
+3. **離線報告快取**：顯示目前已快取的報告篇數；「清空快取」按鈕會彈二次確認 dialog（保留在伺服器的檔案不會被動到，只清瀏覽器 IndexedDB）
+
+### 分析回顧：時間軸模式（Phase 8）✅
+
+`/reports` 頁面右上新增 view mode 切換（預設「🔲 卡片」）：
+
+- **卡片模式**：2 欄 grid 列出所有報告卡
+- **時間軸模式**：依月份（YYYY-MM）分組，月份標籤 sticky top，月內按發布日期降冪列出
+
+切換偏好存 `localStorage['alpha-lab:reports-view-mode']`，reload / 換頁保留。篩選條件（類型、搜尋關鍵字）對兩種 view 都生效。
+
 ### 既有功能（Phase 0-1.5）
 
 - 首頁顯示後端連線狀態
@@ -256,7 +285,7 @@ type ..\data\reports\daily\2026-04-17.md
 | 7B.1 | 數據源擴充（Yahoo 備援、processed 指標 JSON、daily_collect 串接）✅ |
 | 7B.2 | 內容自動化（每日市場簡報）✅ |
 | 7B.3 | UX 與快取（報告離線快取、加入組合強化）✅ |
-| 8 | 頁面擴充 |
+| 8 | 頁面擴充（`/stocks` 瀏覽列表、`/settings` 偏好中心、`/reports` 時間軸 view）✅ |
 | 9 | UI 升級 |
 
 ## Rebuild 本地資料庫
@@ -300,4 +329,4 @@ A：Phase 4 起，分析報告會儲存在 `data/reports/analysis/<id>.md`，同
 
 ---
 
-_文件同步於 Phase 7B.2。後續 Phase 會持續擴充。_
+_文件同步於 Phase 8。後續 Phase 會持續擴充。_

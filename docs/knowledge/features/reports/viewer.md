@@ -1,7 +1,7 @@
 ---
 domain: features/reports/viewer
-updated: 2026-04-16
-related: [storage.md, ../portfolio/recommender.md]
+updated: 2026-04-19
+related: [storage.md, ../portfolio/recommender.md, ../settings.md]
 ---
 
 # Reports 前端 /reports 列表 + 細節（Phase 4 / Phase 6 擴充）
@@ -14,9 +14,13 @@ related: [storage.md, ../portfolio/recommender.md]
 
 - **Route**：`/reports`（列表）、`/reports/:reportId`（細節），在 `App.tsx` 定義
 - **列表頁 `ReportsPage`**：
-  - 讀 `GET /api/reports`，以 type filter 按鈕切換（全部 / 個股 / 組合 / 事件 / 研究）
+  - 讀 `GET /api/reports`，以 type filter 按鈕切換（全部 / 個股 / 組合 / 事件 / 研究 / 每日簡報）
   - Phase 6：頂部搜尋輸入框（`data-testid="reports-search"`）透過 `q` query param 過濾；與 type filter 可組合
-  - Loading / error / empty 三態；用 grid 2 欄顯示 `ReportCard`
+  - Loading / error / empty 三態
+  - **Phase 8：View mode 切換**（`data-testid="view-grid"` / `view-timeline"`）—
+    - `grid`：2 欄 `ReportCard`（預設）
+    - `timeline`：`<ReportTimeline>` 依月份分組，月份標籤 sticky top（`bg-slate-950`）；分組來自純函式 `groupReportsByMonth`（`lib/reportTimeline.ts`），月份降冪、月內順序沿用 API（date desc）
+    - 偏好存 `localStorage['alpha-lab:reports-view-mode']`（`"grid" | "timeline"`）；初始化時 `readInitialView()` fallback 到 `grid`
 - **卡片 `ReportCard`**：
   - 顯示 type badge + date + symbols + title + summary_line + tags
   - 主體是 `<Link to="/reports/:id">`；動作列（`star-toggle` / `delete-report`）獨立於 link 外，避免整張卡吃掉按鈕點擊
@@ -37,6 +41,9 @@ related: [storage.md, ../portfolio/recommender.md]
 - [frontend/src/pages/ReportsPage.tsx](../../../../frontend/src/pages/ReportsPage.tsx)
 - [frontend/src/pages/ReportDetailPage.tsx](../../../../frontend/src/pages/ReportDetailPage.tsx)
 - [frontend/src/components/reports/ReportCard.tsx](../../../../frontend/src/components/reports/ReportCard.tsx)
+- [frontend/src/components/reports/ReportTimeline.tsx](../../../../frontend/src/components/reports/ReportTimeline.tsx) — 時間軸 view 容器
+- [frontend/src/lib/reportTimeline.ts](../../../../frontend/src/lib/reportTimeline.ts) — `groupReportsByMonth` 純函式
+- [frontend/tests/lib/reportTimeline.test.ts](../../../../frontend/tests/lib/reportTimeline.test.ts) — grouping 單元測試
 - [frontend/src/components/MarkdownRender.tsx](../../../../frontend/src/components/MarkdownRender.tsx)
 - [frontend/src/layouts/AppLayout.tsx](../../../../frontend/src/layouts/AppLayout.tsx) — header 「回顧」連結
 - [frontend/tests/components/ReportCard.test.tsx](../../../../frontend/tests/components/ReportCard.test.tsx)
@@ -51,3 +58,5 @@ related: [storage.md, ../portfolio/recommender.md]
 - **★ / 刪除動作列目前是純文字按鈕**，屬 Phase 6 過渡實作；Phase 8 UI 升級會換成 icon button（見 spec §15 Phase 8），但 `data-testid="star-toggle"` / `data-testid="delete-report"` **保留不變**以維持 E2E。
 - 新增動作按鈕時要把 click 事件 `stopPropagation`，避免 `<Link>` 或 `<li>` 的 click handler 吃掉（目前 `ReportCard` 已經把動作列獨立於 `<Link>` 外，寫新按鈕前要維持這個結構）。
 - mutation 後一律 `invalidateQueries(["reports"])`（整棵子樹），而不是僅 invalidate 單筆；同頁有多種 filter 時才不會出現殘影。
+- **Timeline sticky header 背景色**：`ReportTimeline` 月份 heading 用 `bg-slate-950`（對齊 `AppLayout` 根背景）。若日後全站背景改色，sticky heading 透字就會難看，要一起改。
+- **Timeline 月份粒度**：目前 group by `YYYY-MM`。若未來報告量少到「每月不到 2 篇」，可考慮改成 by `YYYY-Q` 或 by `YYYY`；但粒度切換會影響 `groupReportsByMonth` 簽名，要同步改 `ReportTimeline` 的 `data-testid="timeline-month-*"` 命名與對應 E2E。
