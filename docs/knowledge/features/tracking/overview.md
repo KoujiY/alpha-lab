@@ -1,6 +1,6 @@
 ---
 domain: features/tracking
-updated: 2026-04-17
+updated: 2026-04-18
 related: [../portfolio/recommender.md, ../../architecture/data-models.md, ../../architecture/data-flow.md, ../../architecture/ui-conventions.md]
 ---
 
@@ -58,7 +58,7 @@ related: [../portfolio/recommender.md, ../../architecture/data-models.md, ../../
 | 方法 | 路徑 | 說明 |
 |------|------|------|
 | POST | `/api/portfolios/saved` | 儲存組合；`base_date` 由後端取 `date.today()`，可帶 `?allow_fallback=true` 走 probe 回退路徑 |
-| POST | `/api/portfolios/saved/probe` | 前置探測：給一組 symbols，回 `{target_date, resolved_date, today_available, missing_today_symbols}` |
+| GET | `/api/portfolios/saved/probe` | 前置探測：給一組 symbols，回 `{target_date, resolved_date, today_available, missing_today_symbols, symbol_statuses}` |
 | GET | `/api/portfolios/saved` | 列出全部已儲存組合（metadata，不含 holdings 明細） |
 | GET | `/api/portfolios/saved/{id}` | 取單筆詳細（含 holdings 明細） |
 | DELETE | `/api/portfolios/saved/{id}` | 刪除組合；成功 204，不存在 404 |
@@ -120,11 +120,14 @@ nav(t) = Σ( weight_i × price_i(t) / base_price_i )
   - 為什麼不用 `title=` 原生 tooltip：macOS / 部分瀏覽器不顯示或 hover 延遲過長
 - 底層是共用 hook `useUpdatePricesJob`，同一套 state machine 被「加入組合」等其他觸發點重用（目前僅 nav 使用，但 hook 保留擴充空間）
 
-**「今日報價不齊」共用 Dialog（`BaseDateConfirmDialog.tsx`）：**
+**「部分持股報價不齊」共用 Dialog（`BaseDateConfirmDialog.tsx`）：**
 
 - 同時被 `PortfoliosPage`（儲存推薦組合）與 `StockActions`（加入組合）使用
-- 顯示：缺價的 symbol 清單、`resolved_date` 作為 fallback 基準、「取消 / 以 {resolved_date} 為基準繼續」兩個動作
-- `resolved_date=null` 時「繼續」按鈕 disabled，並提示使用者去點 nav 更新報價
+- Phase 7B.3 新增 `symbol_statuses` 分類引導：後端 `probe_base_date` 回傳每個缺價 symbol 的原因分類（`no_data` / `stale` / `today_missing`），dialog 依分類分組顯示不同引導訊息與顏色（紅 / 橘 / 琥珀）
+  - `no_data`：完全無報價紀錄 → 紅色，提示先執行資料蒐集
+  - `stale`：最近報價 > 7 天 → 橘色，提示可能停牌或下市
+  - `today_missing`：有近期報價但今日無 → 琥珀色，提示 TWSE 14:00 後公告
+- `resolved_date=null` 時「繼續」按鈕 disabled，並提示使用者先補抓報價
 
 **API client：**`frontend/src/api/savedPortfolios.ts`，包含 `listSavedPortfolios`、`getSavedPortfolio`、`saveRecommendedPortfolio`（支援 `{allowFallback}`）、`deleteSavedPortfolio`、`fetchPerformance`、`probeBaseDate`。
 

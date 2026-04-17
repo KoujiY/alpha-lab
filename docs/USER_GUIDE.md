@@ -54,7 +54,7 @@ pnpm dev
 4. 個股頁會顯示：基本資料、股價走勢、關鍵指標、月營收、季報摘要、三大法人、融資融券、重大訊息
 5. 將游標停在下劃虛線的術語（例：本益比 (PE)、EPS）會跳出簡短定義
 6. 頁面上方有「收藏 ☆ / 已收藏 ★」切換（存 localStorage）、「加入組合」按鈕（展開清單挑一個已儲存組合、把這檔 symbol 混入）、「相關分析報告」區塊（列出 `GET /api/reports?symbol={symbol}` 的結果）
-   - 加入組合同樣走 probe 檢查：若今日報價不齊會彈「今日報價不齊」dialog，流程與儲存推薦組合一致
+   - 加入組合同樣走 probe 檢查：若今日報價不齊會彈「部分持股報價不齊」dialog，依原因分類顯示引導（無資料 / 報價過時 / 今日未收盤），流程與儲存推薦組合一致
 
 ### 多因子評分（Phase 3）
 
@@ -255,7 +255,7 @@ type ..\data\reports\daily\2026-04-17.md
 | 7A | 組合追蹤強化（血緣 + schema 驗證）✅ |
 | 7B.1 | 數據源擴充（Yahoo 備援、processed 指標 JSON、daily_collect 串接）✅ |
 | 7B.2 | 內容自動化（每日市場簡報）✅ |
-| 7B.3 | UX 與快取（報告離線快取、加入組合強化） |
+| 7B.3 | UX 與快取（報告離線快取、加入組合強化）✅ |
 | 8 | UI 升級 |
 | 9 | 頁面擴充 |
 
@@ -292,7 +292,7 @@ A：Phase 1 起，數據會透過 `POST /api/jobs/collect` 手動觸發抓取，
 
 ### Q：報告會保存在哪？
 
-A：Phase 4 起，分析報告會儲存在 `data/reports/analysis/<id>.md`，同時更新 `data/reports/index.json` 與當日 `data/reports/summaries/<date>.json`；前端 `/reports` 頁面可瀏覽列表與細節。自訂儲存目錄可設 `ALPHA_LAB_REPORTS_ROOT` 環境變數。
+A：Phase 4 起，分析報告會儲存在 `data/reports/analysis/<id>.md`，同時更新 `data/reports/index.json` 與當日 `data/reports/summaries/<date>.json`；前端 `/reports` 頁面可瀏覽列表與細節。自訂儲存目錄可設 `ALPHA_LAB_REPORTS_ROOT` 環境變數。已瀏覽過的報告會自動快取至瀏覽器 IndexedDB，後端未啟動時仍可查看。
 
 ## 專有名詞對照
 
