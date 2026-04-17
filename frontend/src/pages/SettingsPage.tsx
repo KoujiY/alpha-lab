@@ -1,7 +1,8 @@
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
+import { listAllStocks } from "@/api/stocks";
 import { useFavorites } from "@/hooks/useFavorites";
-import { useStocks } from "@/hooks/useStocks";
 import {
   useTutorialMode,
   type TutorialMode,
@@ -18,7 +19,14 @@ const TUTORIAL_OPTIONS: { value: TutorialMode; label: string; desc: string }[] =
 export function SettingsPage() {
   const { mode, setMode } = useTutorialMode();
   const { favorites, toggle } = useFavorites();
-  const { data: stocks } = useStocks();
+  // 只有使用者有收藏時才觸發 /api/stocks 全量載入，避免空收藏情境白白下載 3000 檔
+  const stocksEnabled = favorites.length > 0;
+  const { data: stocks, isLoading: stocksLoading } = useQuery({
+    queryKey: ["stocks", "list", ""],
+    queryFn: () => listAllStocks(),
+    staleTime: 5 * 60 * 1000,
+    enabled: stocksEnabled,
+  });
   const [cachedCount, setCachedCount] = useState<number | null>(null);
 
   useEffect(() => {
@@ -26,6 +34,11 @@ export function SettingsPage() {
   }, []);
 
   const nameMap = new Map((stocks ?? []).map((s) => [s.symbol, s.name]));
+  function displayName(symbol: string): string {
+    if (!stocksEnabled) return "";
+    if (stocksLoading) return "（載入中…）";
+    return nameMap.get(symbol) ?? "（查無資料，可能已下市）";
+  }
 
   async function handleClearCache() {
     if (!window.confirm("確定清空所有離線報告快取？")) return;
@@ -92,31 +105,28 @@ export function SettingsPage() {
           </p>
         ) : (
           <ul className="mt-3 space-y-1">
-            {favorites.map((symbol) => {
-              const name = nameMap.get(symbol);
-              return (
-                <li
-                  key={symbol}
-                  className="flex items-center justify-between rounded bg-slate-950/40 px-3 py-2 text-sm"
-                  data-testid={`favorite-row-${symbol}`}
-                >
-                  <span>
-                    <span className="font-mono text-slate-200">{symbol}</span>
-                    <span className="ml-2 text-slate-400">
-                      {name ?? "（載入中…）"}
-                    </span>
+            {favorites.map((symbol) => (
+              <li
+                key={symbol}
+                className="flex items-center justify-between rounded bg-slate-950/40 px-3 py-2 text-sm"
+                data-testid={`favorite-row-${symbol}`}
+              >
+                <span>
+                  <span className="font-mono text-slate-200">{symbol}</span>
+                  <span className="ml-2 text-slate-400">
+                    {displayName(symbol)}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => toggle(symbol)}
-                    className="text-xs text-red-400 hover:text-red-300"
-                    data-testid={`favorite-remove-${symbol}`}
-                  >
-                    移除
-                  </button>
-                </li>
-              );
-            })}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => toggle(symbol)}
+                  className="text-xs text-red-400 hover:text-red-300"
+                  data-testid={`favorite-remove-${symbol}`}
+                >
+                  移除
+                </button>
+              </li>
+            ))}
           </ul>
         )}
       </section>

@@ -29,7 +29,8 @@ export function StocksPage() {
     if (!data) return [] as string[];
     const set = new Set<string>();
     for (const s of data) {
-      if (s.industry) set.add(s.industry);
+      const trimmed = s.industry?.trim();
+      if (trimmed) set.add(trimmed);
     }
     return [...set].sort((a, b) => a.localeCompare(b));
   }, [data]);
@@ -47,7 +48,7 @@ export function StocksPage() {
     const byIndustry =
       industry === INDUSTRY_ALL
         ? byQuery
-        : byQuery.filter((s) => s.industry === industry);
+        : byQuery.filter((s) => s.industry?.trim() === industry);
     return sortRows(byIndustry, favoriteSet);
   }, [data, query, industry, favoriteSet]);
 

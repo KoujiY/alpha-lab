@@ -55,4 +55,15 @@ describe("useFavorites", () => {
     });
     expect(result.current.favorites).toEqual(["2454"]);
   });
+
+  it("resets when another tab clears all localStorage (event.key === null)", () => {
+    window.localStorage.setItem(KEY, JSON.stringify(["2330"]));
+    const { result } = renderHook(() => useFavorites());
+    expect(result.current.favorites).toEqual(["2330"]);
+    act(() => {
+      window.localStorage.clear();
+      window.dispatchEvent(new StorageEvent("storage", { key: null }));
+    });
+    expect(result.current.favorites).toEqual([]);
+  });
 });

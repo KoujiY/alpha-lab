@@ -100,3 +100,31 @@ def test_list_accepts_limit_3000() -> None:
 
     assert resp.status_code == 200
     assert len(resp.json()) == 2
+
+
+def test_list_returns_more_than_old_500_cap() -> None:
+    """Boundary：seed 600 檔，確認新的 limit=600 真的能全回，不被 Phase 7 前的 500 cap 切掉。"""
+    test_engine = _make_test_engine()
+    _override_engine(test_engine)
+
+    from alpha_lab.storage.engine import session_scope
+    with session_scope() as s:
+        for i in range(600):
+            s.add(Stock(symbol=f"T{i:04d}", name=f"測試{i}"))
+
+    with TestClient(app) as client:
+        resp = client.get("/api/stocks?limit=600")
+
+    assert resp.status_code == 200
+    assert len(resp.json()) == 600
+
+
+def test_list_rejects_limit_over_3000() -> None:
+    """Boundary：超過上限（3001）應回 422，確保 cap 真的由 Query validator 生效。"""
+    test_engine = _make_test_engine()
+    _override_engine(test_engine)
+
+    with TestClient(app) as client:
+        resp = client.get("/api/stocks?limit=3001")
+
+    assert resp.status_code == 422
