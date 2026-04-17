@@ -179,6 +179,26 @@ async def run_daily_collect(
         status, summary = await _run_one(label, job_type, params, session_factory)
         results.append((label, status, summary))
 
+    # Phase 7B.1：若有明確 symbols，跑一次 processed 指標落檔（--all 不自動跑，避免 60 分鐘）
+    if price_symbols:
+        _label = "processed indicators"
+        status, summary = await _run_one(
+            _label,
+            JobType.PROCESSED_INDICATORS,
+            {"symbols": price_symbols},
+            session_factory,
+        )
+        results.append((_label, status, summary))
+
+        _label = "processed ratios"
+        status, summary = await _run_one(
+            _label,
+            JobType.PROCESSED_RATIOS,
+            {"symbols": price_symbols, "as_of": trade_date_str},
+            session_factory,
+        )
+        results.append((_label, status, summary))
+
     print("\n=== summary ===")
     for label, status, summary in results:
         print(f"  [{label}] {status}: {summary}")
