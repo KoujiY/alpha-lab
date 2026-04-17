@@ -202,6 +202,28 @@ nav(t) = Σ( weight_i × today_close_i / base_close_i )
 - 若 TWSE 暫時故障，系統會自動 fallback 到 Yahoo Finance；資料庫 `prices_daily.source` 會標記來源
 - Yahoo 是非官方 API、準確度偶有偏差，僅作為備援；若頻繁使用 Yahoo 資料請自行交叉比對
 
+### 每日市場簡報（Phase 7B.2）✅
+
+每次執行 `daily_collect.py` 後，pipeline 尾端會自動產出一份 Markdown 簡報，包含：
+
+- **市場概況**：當日所有已抓取股票的收盤價、漲跌幅、成交量
+- **法人動向**：三大法人買賣超（外資 / 投信 / 自營商）
+- **重大訊息**：當日重大訊息列表
+- **組合追蹤**：已儲存組合一覽
+
+**檔案位置**：`data/reports/daily/YYYY-MM-DD.md`
+
+**手動觸發**：
+
+```cmd
+cd backend
+.venv\Scripts\python.exe scripts\daily_collect.py --symbols 2330 --date 2026-04-17
+REM daily briefing 會在 pipeline 尾端自動產出
+type ..\data\reports\daily\2026-04-17.md
+```
+
+簡報同時會寫入 `data/reports/index.json`（type = `"daily"`），可在前端 `/reports` 回顧頁查看。
+
 ### 計算後指標（供 Claude Code 使用）
 
 - `data/processed/indicators/<symbol>.json`：MA / RSI / 52 週高低比
@@ -232,7 +254,7 @@ nav(t) = Σ( weight_i × today_close_i / base_close_i )
 | 6 | 組合追蹤 + 報告管理 + 教學開關（D）✅ |
 | 7A | 組合追蹤強化（血緣 + schema 驗證）✅ |
 | 7B.1 | 數據源擴充（Yahoo 備援、processed 指標 JSON、daily_collect 串接）✅ |
-| 7B.2 | 內容自動化（新聞彙整、每日簡報） |
+| 7B.2 | 內容自動化（每日市場簡報）✅ |
 | 7B.3 | UX 與快取（報告離線快取、加入組合強化） |
 | 8 | UI 升級 |
 | 9 | 頁面擴充 |
@@ -278,4 +300,4 @@ A：Phase 4 起，分析報告會儲存在 `data/reports/analysis/<id>.md`，同
 
 ---
 
-_文件同步於 Phase 7B.1。後續 Phase 會持續擴充。_
+_文件同步於 Phase 7B.2。後續 Phase 會持續擴充。_

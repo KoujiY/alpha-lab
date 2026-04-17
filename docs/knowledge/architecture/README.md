@@ -13,5 +13,6 @@
 | `storage.md` | `data/` 下各子資料夾用途、`index.json` schema、備份策略 | Phase 4 |
 | `ui-conventions.md` | 跨功能共用的前端 UI 模式（狀態面板、共用 dialog、hooks、localStorage vs DB） | Phase 6 |
 | `processed-store.md` | `data/processed/` 計算後指標 JSON 存放 | Phase 7B.1 |
+| `daily-briefing.md` | 每日市場簡報自動產出機制 | Phase 7B.2 |
 
 Phase 0 只保留資料夾與本 README。
