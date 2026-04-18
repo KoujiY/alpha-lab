@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Wand2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import {
@@ -26,9 +26,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { buildMergedHoldings } from "@/lib/portfolioMerge";
 import { checkSoftLimits } from "@/lib/softLimits";
-import { isWeightSumValid, rebalanceAfterEdit } from "@/lib/weightAdjust";
+import {
+  isWeightSumValid,
+  normalizeToOne,
+  rebalanceAfterEdit,
+} from "@/lib/weightAdjust";
 
 export interface AddToPortfolioWizardProps {
   meta: StockMeta;
@@ -72,7 +77,11 @@ export function AddToPortfolioWizard({
     null,
   );
   const [previewHoldings, setPreviewHoldings] = useState<SavedHolding[]>([]);
-  const [weightInputs, setWeightInputs] = useState<Record<string, string>>({});
+  // 編輯中的單格：只維護「目前正在打字的那一列」raw string；
+  // 其他列直接從 previewHoldings 格式化顯示，避免兩份 state 漂移。
+  const [editing, setEditing] = useState<{ symbol: string; raw: string } | null>(
+    null,
+  );
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
     open: false,
   });
@@ -84,7 +93,7 @@ export function AddToPortfolioWizard({
       setStep("pick");
       setBaseDetail(null);
       setPreviewHoldings([]);
-      setWeightInputs({});
+      setEditing(null);
       setConfirmDialog({ open: false });
       setFetchError(null);
     }
@@ -94,7 +103,6 @@ export function AddToPortfolioWizard({
     setFetchError(null);
     try {
       const detail = await getSavedPortfolio(base.id);
-      // 預設新 symbol 10%
       const merged = buildMergedHoldings({
         existing: detail.holdings,
         symbol: meta.symbol,
@@ -103,11 +111,7 @@ export function AddToPortfolioWizard({
       });
       setBaseDetail(detail);
       setPreviewHoldings(merged);
-      setWeightInputs(
-        Object.fromEntries(
-          merged.map((h) => [h.symbol, (h.weight * 100).toFixed(2)]),
-        ),
-      );
+      setEditing(null);
       setStep("preview");
     } catch (err) {
       setFetchError(err instanceof Error ? err.message : "讀取組合失敗");
@@ -115,19 +119,33 @@ export function AddToPortfolioWizard({
   }
 
   function handleWeightChange(symbol: string, raw: string) {
-    setWeightInputs((prev) => ({ ...prev, [symbol]: raw }));
-    const pct = Number(raw);
-    if (!Number.isFinite(pct)) return;
-    const next = rebalanceAfterEdit(previewHoldings, symbol, pct / 100);
-    setPreviewHoldings(next);
-    setWeightInputs(
-      Object.fromEntries(
-        next.map((h) => [
-          h.symbol,
-          h.symbol === symbol ? raw : (h.weight * 100).toFixed(2),
-        ]),
-      ),
-    );
+    setEditing({ symbol, raw });
+    const trimmed = raw.trim();
+    if (trimmed === "") return; // 空字串：保留 raw 顯示、暫不 re-normalize
+    const pct = Number(trimmed);
+    if (!Number.isFinite(pct)) return; // 非數字（例如「.」）：保留顯示、不更新數值
+    setPreviewHoldings((prev) => rebalanceAfterEdit(prev, symbol, pct / 100));
+  }
+
+  function handleWeightBlur() {
+    setEditing(null);
+  }
+
+  function displayWeight(h: SavedHolding): string {
+    if (editing && editing.symbol === h.symbol) return editing.raw;
+    return (h.weight * 100).toFixed(2);
+  }
+
+  function isEditingInvalid(): boolean {
+    if (!editing) return false;
+    const trimmed = editing.raw.trim();
+    if (trimmed === "") return true;
+    return !Number.isFinite(Number(trimmed));
+  }
+
+  function handleAutoNormalize() {
+    setPreviewHoldings((prev) => normalizeToOne(prev));
+    setEditing(null);
   }
 
   const warnings = useMemo(
@@ -135,6 +153,9 @@ export function AddToPortfolioWizard({
     [previewHoldings],
   );
   const sumValid = isWeightSumValid(previewHoldings);
+  const canAutoNormalize =
+    !sumValid &&
+    previewHoldings.reduce((s, h) => s + h.weight, 0) > 0;
 
   async function persistHoldings(allowFallback: boolean) {
     if (!baseDetail) return;
@@ -220,17 +241,17 @@ export function AddToPortfolioWizard({
                 <ul className="space-y-1">
                   {(savedList ?? []).map((p) => (
                     <li key={p.id}>
-                      <button
-                        type="button"
+                      <Button
+                        variant="outline"
                         onClick={() => void handlePickBase(p)}
                         data-testid={`pick-portfolio-${p.id}`}
-                        className="flex w-full items-center justify-between rounded border border-slate-800 bg-slate-950/50 px-3 py-2 text-left text-sm hover:border-slate-600"
+                        className="h-auto w-full justify-between py-2 text-left"
                       >
-                        <span>{p.label}</span>
+                        <span className="text-slate-100">{p.label}</span>
                         <span className="text-xs text-slate-500">
                           {p.holdings_count} 檔 · 起始 {p.base_date}
                         </span>
-                      </button>
+                      </Button>
                     </li>
                   ))}
                 </ul>
@@ -259,17 +280,19 @@ export function AddToPortfolioWizard({
                         </td>
                         <td className="px-2 py-1">{h.name}</td>
                         <td className="px-2 py-1 text-right">
-                          <input
+                          <Input
                             type="number"
-                            min="0"
-                            max="100"
-                            step="0.1"
-                            value={weightInputs[h.symbol] ?? ""}
+                            inputMode="decimal"
+                            min={0}
+                            max={100}
+                            step={0.1}
+                            value={displayWeight(h)}
                             onChange={(e) =>
                               handleWeightChange(h.symbol, e.target.value)
                             }
+                            onBlur={handleWeightBlur}
                             data-testid={`wizard-weight-input-${h.symbol}`}
-                            className="w-20 rounded border border-slate-700 bg-slate-900 px-2 py-0.5 text-right"
+                            className="h-7 w-20 px-2 py-0.5 text-right"
                           />
                         </td>
                       </tr>
@@ -297,10 +320,33 @@ export function AddToPortfolioWizard({
 
               <SoftLimitWarningList warnings={warnings} />
 
-              {!sumValid ? (
-                <p className="text-xs text-red-400">
-                  權重合計不是 100%，請調整後再儲存。
+              {isEditingInvalid() ? (
+                <p
+                  className="flex items-center gap-1.5 text-xs text-amber-300"
+                  data-testid="wizard-input-invalid"
+                >
+                  <AlertTriangle className="size-3.5" />
+                  請輸入 0~100 的數字；其他列暫未重新分配。
                 </p>
+              ) : null}
+
+              {!sumValid ? (
+                <div
+                  className="flex items-center justify-between gap-2 rounded border border-red-700/50 bg-red-500/10 px-2 py-1.5 text-xs text-red-300"
+                  data-testid="wizard-sum-invalid"
+                >
+                  <span>權重合計不是 100%，請調整或一鍵自動補正。</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAutoNormalize}
+                    disabled={!canAutoNormalize}
+                    data-testid="wizard-auto-normalize"
+                  >
+                    <Wand2 />
+                    自動補正
+                  </Button>
+                </div>
               ) : null}
               {error ? (
                 <p className="text-xs text-red-400">

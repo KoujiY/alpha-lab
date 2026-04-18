@@ -143,3 +143,22 @@ test("wizard back button returns to step 1", async ({ page }) => {
   await page.getByTestId("wizard-back").click();
   await expect(page.getByTestId("wizard-step-1")).toBeVisible();
 });
+
+test("wizard shows invalid hint when weight is non-numeric, no re-normalize", async ({
+  page,
+}) => {
+  await page.route("**/api/portfolios/saved", (route: Route) =>
+    route.fulfill({ json: [baseMeta] }),
+  );
+  await page.route("**/api/portfolios/saved/42", (route: Route) =>
+    route.fulfill({ json: baseDetail }),
+  );
+
+  await page.goto("/stocks/2330");
+  await page.getByTestId("add-to-portfolio").click();
+  await page.getByTestId("pick-portfolio-42").click();
+  await page.getByTestId("wizard-weight-input-2317").fill("");
+  await expect(page.getByTestId("wizard-input-invalid")).toBeVisible();
+  // 合計仍為 100%（因為沒 re-normalize）
+  await expect(page.getByTestId("wizard-sum")).toContainText("100.00%");
+});

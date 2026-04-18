@@ -52,3 +52,17 @@ export function isWeightSumValid(holdings: SavedHolding[]): boolean {
   const sum = holdings.reduce((s, h) => s + h.weight, 0);
   return Math.abs(sum - 1) < 1e-6;
 }
+
+/**
+ * 把 holdings 等比縮放到合計 1。
+ * - sum = 0（極端退化 state，使用者把所有權重打成 0）→ 原樣回傳（呼叫方負責顯示錯誤）
+ * - 其他情況 → 每筆 weight /= sum，保證 Σ = 1
+ *
+ * 用途：當 `isWeightSumValid` 因連續手動編輯累積誤差而回 false，
+ * 提供「自動補正」按鈕給使用者一鍵修復，而不是卡死 confirm button。
+ */
+export function normalizeToOne(holdings: SavedHolding[]): SavedHolding[] {
+  const sum = holdings.reduce((s, h) => s + h.weight, 0);
+  if (sum === 0) return holdings;
+  return holdings.map((h) => ({ ...h, weight: h.weight / sum }));
+}
