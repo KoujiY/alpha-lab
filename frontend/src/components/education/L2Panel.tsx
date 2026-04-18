@@ -1,4 +1,7 @@
+import { X } from "lucide-react";
+
 import { MarkdownRender } from "@/components/MarkdownRender";
+import { IconButton } from "@/components/ui/icon-button";
 import { useL2Topic } from "@/hooks/useL2Topic";
 
 import { useL2Panel } from "./L2PanelContext";
@@ -21,14 +24,9 @@ export function L2Panel() {
         <h2 className="text-lg font-semibold text-slate-100">
           {data?.title ?? "載入中…"}
         </h2>
-        <button
-          type="button"
-          onClick={closePanel}
-          className="rounded px-2 py-1 text-slate-400 hover:bg-slate-800 hover:text-slate-100"
-          aria-label="關閉詳解面板"
-        >
-          ✕
-        </button>
+        <IconButton label="關閉詳解面板" onClick={closePanel}>
+          <X />
+        </IconButton>
       </div>
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {isLoading && <p className="text-slate-400">載入中…</p>}

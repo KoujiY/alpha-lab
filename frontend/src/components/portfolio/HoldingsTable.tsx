@@ -1,6 +1,7 @@
 import { Fragment, useState } from "react";
 
 import type { Holding } from "@/api/types";
+import { Button } from "@/components/ui/button";
 import { useTutorialMode } from "@/contexts/TutorialModeContext";
 
 interface HoldingsTableProps {
@@ -58,16 +59,17 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
                 {showReasons && (
                   <td className="py-2 text-right">
                     {h.reasons && h.reasons.length > 0 ? (
-                      <button
-                        type="button"
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => toggle(h.symbol)}
-                        className="text-sky-400 hover:text-sky-300"
                         aria-expanded={isOpen}
                         aria-controls={`reasons-${h.symbol}`}
                         data-testid={`reasons-toggle-${h.symbol}`}
+                        className="text-sky-400 hover:bg-transparent hover:text-sky-300"
                       >
                         {isOpen ? "收起" : "查看理由"}
-                      </button>
+                      </Button>
                     ) : (
                       <span className="text-slate-600">—</span>
                     )}

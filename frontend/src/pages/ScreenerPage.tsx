@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 
 import { fetchFactors, filterStocks } from "@/api/screener";
 import type { FactorRange, ScreenerStock } from "@/api/types";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 
 export function ScreenerPage() {
   const { data: factorsData, isLoading: factorsLoading } = useQuery({
@@ -81,17 +83,15 @@ export function ScreenerPage() {
               >
                 {factor.label}
               </label>
-              <input
+              <Slider
                 id={`slider-${factor.key}`}
-                type="range"
                 min={0}
                 max={100}
                 step={5}
-                value={ranges[factor.key] ?? 0}
-                onChange={(e) =>
-                  handleSliderChange(factor.key, Number(e.target.value))
-                }
-                className="flex-1 accent-sky-500"
+                value={[ranges[factor.key] ?? 0]}
+                onValueChange={([v]) => handleSliderChange(factor.key, v)}
+                aria-label={factor.label}
+                className="flex-1"
                 data-testid={`slider-${factor.key}`}
               />
               <span className="w-10 text-right text-sm tabular-nums text-slate-300">
@@ -99,14 +99,14 @@ export function ScreenerPage() {
               </span>
             </div>
           ))}
-        <button
-          type="button"
+        <Button
+          variant="default"
+          size="lg"
           onClick={handleFilter}
-          className="rounded bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500"
           data-testid="screener-filter-btn"
         >
           篩選
-        </button>
+        </Button>
       </div>
 
       {/* 結果區 */}

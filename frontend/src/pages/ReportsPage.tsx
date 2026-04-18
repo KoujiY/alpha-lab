@@ -17,6 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { useReports } from "@/hooks/useReports";
 
@@ -119,22 +120,22 @@ export function ReportsPage() {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap gap-2">
-          {TYPE_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => setTypeFilter(opt.value)}
-              aria-pressed={typeFilter === opt.value}
-              className={`rounded border px-3 py-1 text-sm ${
-                typeFilter === opt.value
-                  ? "border-sky-500 bg-sky-500/20 text-sky-200"
-                  : "border-slate-700 text-slate-400 hover:border-slate-500"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
+        <div className="flex flex-wrap gap-2" role="group" aria-label="報告類型">
+          {TYPE_OPTIONS.map((opt) => {
+            const active = typeFilter === opt.value;
+            return (
+              <Button
+                key={opt.value}
+                variant={active ? "primary" : "outline"}
+                size="sm"
+                onClick={() => setTypeFilter(opt.value)}
+                aria-pressed={active}
+                data-testid={`reports-type-${opt.value}`}
+              >
+                {opt.label}
+              </Button>
+            );
+          })}
         </div>
         <div className="flex items-center gap-1">
           <IconButton
