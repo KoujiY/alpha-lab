@@ -117,7 +117,10 @@ test("加入組合：今日報價不齊 → 彈 BaseDateConfirmDialog", async ({
 
   await page.goto("/stocks/2330");
   await page.getByTestId("add-to-portfolio").click();
+  await expect(page.getByTestId("wizard-step-1")).toBeVisible();
   await page.getByTestId("pick-portfolio-42").click();
+  await expect(page.getByTestId("wizard-step-2")).toBeVisible();
+  await page.getByTestId("wizard-confirm").click();
 
   const dialog = page.getByTestId("save-confirm-dialog");
   await expect(dialog).toBeVisible();
@@ -185,6 +188,8 @@ test("加入組合時 POST payload 帶 parent_id 血緣", async ({ page }) => {
   await page.goto("/stocks/2330");
   await page.getByTestId("add-to-portfolio").click();
   await page.getByTestId("pick-portfolio-42").click();
+  await expect(page.getByTestId("wizard-step-2")).toBeVisible();
+  await page.getByTestId("wizard-confirm").click();
 
   await expect.poll(() => capturedBodies.length).toBeGreaterThan(0);
   expect(capturedBodies[0]?.parent_id).toBe(42);
