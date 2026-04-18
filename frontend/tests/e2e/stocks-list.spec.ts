@@ -37,9 +37,8 @@ test("stocks list renders rows and filters by search", async ({ page }) => {
 
 test("stocks list filters by industry", async ({ page }) => {
   await page.goto("/stocks");
-  await page
-    .getByTestId("stocks-industry")
-    .selectOption({ label: "半導體業" });
+  await page.getByTestId("stocks-industry").click();
+  await page.getByRole("option", { name: "半導體業" }).click();
   await expect(page.getByTestId("stock-row-2330")).toBeVisible();
   await expect(page.getByTestId("stock-row-2454")).toBeVisible();
   await expect(page.getByTestId("stock-row-2412")).not.toBeVisible();
@@ -80,9 +79,15 @@ test("clicking stock name navigates to detail page", async ({ page }) => {
 test("favorite toggle persists across reload", async ({ page }) => {
   await page.goto("/stocks");
   await page.getByTestId("fav-toggle-2330").click();
-  await expect(page.getByTestId("fav-toggle-2330")).toHaveText("★");
+  await expect(page.getByTestId("fav-toggle-2330")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
   await page.reload();
-  await expect(page.getByTestId("fav-toggle-2330")).toHaveText("★");
+  await expect(page.getByTestId("fav-toggle-2330")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
 });
 
 test("header 股票 link navigates to list", async ({ page }) => {

@@ -1,6 +1,8 @@
+import { Star, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import type { ReportMeta } from "@/api/types";
+import { IconButton } from "@/components/ui/icon-button";
 
 const TYPE_BADGE: Record<ReportMeta["type"], { label: string; className: string }> = {
   stock: { label: "個股", className: "bg-sky-500/20 text-sky-300" },
@@ -43,27 +45,30 @@ export function ReportCard({ meta, onToggleStar, onDelete }: ReportCardProps) {
         ) : null}
       </Link>
       {(onToggleStar ?? onDelete) ? (
-        <div className="mt-3 flex items-center justify-end gap-2 border-t border-slate-800 pt-2">
+        <div className="mt-3 flex items-center justify-end gap-1 border-t border-slate-800 pt-2">
           {onToggleStar ? (
-            <button
-              type="button"
-              onClick={() => onToggleStar(meta.id, !meta.starred)}
+            <IconButton
+              label={meta.starred ? "取消加星" : "加星"}
               data-testid="star-toggle"
-              aria-label={meta.starred ? "取消加星" : "加星"}
-              className="text-base"
+              aria-pressed={meta.starred}
+              onClick={() => onToggleStar(meta.id, !meta.starred)}
             >
-              {meta.starred ? "★" : "☆"}
-            </button>
+              <Star
+                className={
+                  meta.starred ? "fill-amber-300 text-amber-300" : "text-slate-400"
+                }
+              />
+            </IconButton>
           ) : null}
           {onDelete ? (
-            <button
-              type="button"
-              onClick={() => onDelete(meta.id)}
+            <IconButton
+              label="刪除"
               data-testid="delete-report"
-              className="text-xs text-red-400 hover:text-red-300"
+              onClick={() => onDelete(meta.id)}
+              className="text-red-400 hover:text-red-300"
             >
-              刪除
-            </button>
+              <Trash2 />
+            </IconButton>
           ) : null}
         </div>
       ) : null}

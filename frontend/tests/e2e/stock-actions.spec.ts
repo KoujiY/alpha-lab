@@ -60,11 +60,14 @@ test("stock page shows actions and related reports", async ({ page }) => {
 test("favorite toggle persists across reload", async ({ page }) => {
   await page.goto("/stocks/2330");
   const fav = page.getByTestId("favorite-toggle");
-  await expect(fav).toHaveText(/收藏/);
+  await expect(fav).toHaveAttribute("aria-pressed", "false");
   await fav.click();
-  await expect(fav).toHaveText(/已收藏/);
+  await expect(fav).toHaveAttribute("aria-pressed", "true");
   await page.reload();
-  await expect(page.getByTestId("favorite-toggle")).toHaveText(/已收藏/);
+  await expect(page.getByTestId("favorite-toggle")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
 });
 
 test("加入組合：今日報價不齊 → 彈 BaseDateConfirmDialog", async ({ page }) => {

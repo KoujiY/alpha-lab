@@ -1,8 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Trash2 } from "lucide-react";
+import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { deleteSavedPortfolio, fetchPerformance } from "@/api/savedPortfolios";
 import { PerformanceChart } from "@/components/portfolio/PerformanceChart";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { IconButton } from "@/components/ui/icon-button";
 
 export function PortfolioTrackingPage() {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +28,8 @@ export function PortfolioTrackingPage() {
     queryFn: () => fetchPerformance(portfolioId),
     enabled: !Number.isNaN(portfolioId),
   });
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const deleteMutation = useMutation({
     mutationFn: () => deleteSavedPortfolio(portfolioId),
@@ -81,19 +96,38 @@ export function PortfolioTrackingPage() {
             </p>
           ) : null}
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            if (window.confirm(`確定刪除組合「${portfolio.label}」？`)) {
-              deleteMutation.mutate();
-            }
-          }}
-          className="rounded border border-red-500 bg-red-500/10 px-3 py-1.5 text-sm text-red-300 hover:bg-red-500/20"
+        <IconButton
+          label="刪除組合"
+          variant="destructive"
+          size="default"
+          onClick={() => setConfirmOpen(true)}
           data-testid="delete-portfolio"
         >
-          刪除
-        </button>
+          <Trash2 />
+        </IconButton>
       </div>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent data-testid="delete-portfolio-confirm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>確定刪除這個組合？</AlertDialogTitle>
+            <AlertDialogDescription>
+              「{portfolio.label}」刪除後無法復原，績效快照會一起被清除。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="delete-portfolio-cancel">
+              取消
+            </AlertDialogCancel>
+            <AlertDialogAction
+              data-testid="delete-portfolio-proceed"
+              onClick={() => deleteMutation.mutate()}
+            >
+              刪除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <div className="rounded border border-slate-800 bg-slate-900/60 p-3">

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { FolderPlus, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import {
@@ -9,6 +10,8 @@ import {
 } from "@/api/savedPortfolios";
 import type { BaseDateProbe, SavedPortfolioDetail, StockMeta } from "@/api/types";
 import { BaseDateConfirmDialog } from "@/components/portfolio/BaseDateConfirmDialog";
+import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { isFavorite, toggleFavorite } from "@/lib/favorites";
 import { buildMergedHoldings } from "@/lib/portfolioMerge";
 
@@ -130,27 +133,31 @@ export function StockActions({ meta }: StockActionsProps) {
       className="relative flex items-center gap-2"
       data-testid="stock-actions"
     >
-      <button
-        type="button"
+      <IconButton
+        label={fav ? "取消收藏" : "加入收藏"}
+        data-testid="favorite-toggle"
+        aria-pressed={fav}
         onClick={() => {
           toggleFavorite(meta.symbol);
           setFav((v) => !v);
         }}
-        className="rounded border border-slate-700 bg-slate-900/60 px-2.5 py-1 text-sm"
-        data-testid="favorite-toggle"
-        aria-pressed={fav}
       >
-        {fav ? "★ 已收藏" : "☆ 收藏"}
-      </button>
-      <button
-        type="button"
+        <Star
+          className={
+            fav ? "fill-amber-300 text-amber-300" : "text-slate-400"
+          }
+        />
+      </IconButton>
+      <Button
+        variant="primary"
+        size="sm"
         onClick={() => setPickerOpen((o) => !o)}
-        className="rounded border border-indigo-500 bg-indigo-500/10 px-2.5 py-1 text-sm text-indigo-300 hover:bg-indigo-500/20"
         data-testid="add-to-portfolio"
         aria-expanded={pickerOpen}
       >
+        <FolderPlus />
         加入組合
-      </button>
+      </Button>
       {pickerOpen ? (
         <div
           className="absolute right-0 top-10 z-20 w-64 rounded border border-slate-700 bg-slate-900 p-3 shadow-lg"

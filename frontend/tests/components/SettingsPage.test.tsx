@@ -58,12 +58,9 @@ describe("SettingsPage", () => {
     expect(screen.getByTestId("cache-clear")).toBeDisabled();
   });
 
-  it("clicking clear confirms, calls clearReportCache, and resets count", async () => {
+  it("clicking clear opens confirm dialog, calls clearReportCache, and resets count", async () => {
     listSpy.mockResolvedValue(["a", "b", "c"]);
     clearSpy.mockResolvedValue();
-    const confirmStub = vi
-      .spyOn(window, "confirm")
-      .mockReturnValue(true);
 
     renderPage();
     await waitFor(() =>
@@ -73,34 +70,41 @@ describe("SettingsPage", () => {
     await act(async () => {
       fireEvent.click(screen.getByTestId("cache-clear"));
     });
+    await waitFor(() =>
+      expect(screen.getByTestId("cache-clear-confirm")).toBeInTheDocument(),
+    );
 
-    expect(confirmStub).toHaveBeenCalled();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("cache-clear-proceed"));
+    });
+
     expect(clearSpy).toHaveBeenCalledTimes(1);
     await waitFor(() =>
       expect(screen.getByTestId("cache-count")).toHaveTextContent("0"),
     );
-
-    confirmStub.mockRestore();
   });
 
   it("cancelling confirm dialog does not call clearReportCache", async () => {
     listSpy.mockResolvedValue(["a"]);
     clearSpy.mockResolvedValue();
-    const confirmStub = vi
-      .spyOn(window, "confirm")
-      .mockReturnValue(false);
 
     renderPage();
     await waitFor(() =>
       expect(screen.getByTestId("cache-count")).toHaveTextContent("1"),
     );
 
-    fireEvent.click(screen.getByTestId("cache-clear"));
-    expect(confirmStub).toHaveBeenCalled();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("cache-clear"));
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("cache-clear-confirm")).toBeInTheDocument(),
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("cache-clear-cancel"));
+    });
+
     expect(clearSpy).not.toHaveBeenCalled();
     expect(screen.getByTestId("cache-count")).toHaveTextContent("1");
-
-    confirmStub.mockRestore();
   });
 
   it("renders unknown-symbol fallback when stock is missing from listing", async () => {
