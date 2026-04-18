@@ -239,4 +239,41 @@ checkSoftLimits(holdings): SoftLimitWarning[]
 
 ---
 
+## 2026-04-18 補充：review 後追補範圍
+
+第一輪驗收 / review 後發現兩類遺漏，已在同一 PR 內補齊：
+
+**A. Spec 缺口（plan 承諾過但第一輪漏做）**
+
+- `AddToPortfolioWizard` step 1 `pick-portfolio-*` 原為裸 `<button>` → 改 shadcn `Button variant="outline"`
+- `AddToPortfolioWizard` step 2 權重 input 原為裸 `<input type="number">` → 改 shadcn `Input`（新 scaffold `components/ui/input.tsx`）
+
+**B. Plan 沒列入但第一輪時評估應一起遷的遺留元件**
+
+- `HoldingsTable` 查看理由 toggle → Button ghost
+- `ReportsPage` type filter 6 按鈕 → Button with `aria-pressed`
+- `ScreenerPage` factor sliders → shadcn `Slider`（新 scaffold）、篩選按鈕 → Button
+- `NavUpdatePricesButton` 狀態面板 → shadcn `Popover`（新 scaffold）+ PopoverAnchor 驅動
+- `TutorialModeToggle` → Button secondary（保留 data-mode / testid）
+- `L2Panel` 關閉鈕 → IconButton(X)
+
+**C. Code quality 清掃（/review 掃出來的）**
+
+- `button.tsx` 分離 `buttonVariants` 到 `lib/buttonVariants.ts`，消 `react-refresh/only-export-components` warning
+- `AddToPortfolioWizard` 把 `weightInputs` map + `previewHoldings` 雙 state 收斂為單一 `editing = { symbol, raw }`；非數字輸入顯示 `wizard-input-invalid` 琥珀提示（不 silent fallback）
+- 新增 `normalizeToOne` 純函式 + 單元測試 + `wizard-auto-normalize` 按鈕，確保 `isWeightSumValid` 浮點累積時 confirm 不會卡死
+- `PortfoliosPage` 抽 `toSavedHoldings(portfolio)` helper，消三處重複 `holdings.map`
+- `PriceChart` `createChart` options 移除與 `autoSize` 衝突的 `width/height`
+- `tests/setup.ts` 新增 `ResizeObserver` / `Element.prototype.hasPointerCapture` / `scrollIntoView` stub，讓 Radix Slider / Popover 在 jsdom 不炸
+
+**新 shadcn primitives**：`Input` / `Popover` / `Slider`，加上既有 7 個總計 10 個原件落在 `components/ui/`。
+
+**統計**：
+- `grep "<button" src/ --exclude components/ui/` 回 0（除 wizard 表格 `<thead>` 這類 markup，無互動裸 button）
+- `grep window.confirm src/` 回 0
+- unit 84 tests pass；type-check / lint 0 error / 0 warning
+- E2E 仍受限於環境 Playwright browser 下載 block，需使用者本機 `pnpm e2e` 驗收
+
+---
+
 **備註**：此計畫是 Phase 9 的 Just-in-Time plan；Phase 10+ 不預先規劃。
