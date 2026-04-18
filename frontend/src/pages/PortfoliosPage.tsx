@@ -6,6 +6,7 @@ import { probeBaseDate, saveRecommendedPortfolio } from "@/api/savedPortfolios";
 import type {
   BaseDateProbe,
   Portfolio,
+  SavedHolding,
   SavedPortfolioMeta,
 } from "@/api/types";
 import { BaseDateConfirmDialog } from "@/components/portfolio/BaseDateConfirmDialog";
@@ -42,6 +43,17 @@ type ConfirmDialogState =
 type SoftLimitDialogState =
   | { open: false }
   | { open: true; portfolio: Portfolio };
+
+// 把後端推薦組合 holding 轉成儲存用結構；`base_price=0` 讓後端用新組合的 base_date
+// 重新查收盤價 rebase，與 StockActions / wizard 的 buildMergedHoldings 一致。
+function toSavedHoldings(portfolio: Portfolio): SavedHolding[] {
+  return portfolio.holdings.map((h) => ({
+    symbol: h.symbol,
+    name: h.name,
+    weight: h.weight,
+    base_price: 0,
+  }));
+}
 
 export function PortfoliosPage() {
   const queryClient = useQueryClient();
@@ -85,26 +97,14 @@ export function PortfoliosPage() {
       {
         style: portfolio.style,
         label: `${portfolio.label} ${data?.calc_date ?? ""}`.trim(),
-        holdings: portfolio.holdings.map((h) => ({
-          symbol: h.symbol,
-          name: h.name,
-          weight: h.weight,
-          base_price: 0,
-        })),
+        holdings: toSavedHoldings(portfolio),
       },
       { allowFallback },
     );
   }
 
   async function handleSaveClick(portfolio: Portfolio): Promise<void> {
-    const warnings = checkSoftLimits(
-      portfolio.holdings.map((h) => ({
-        symbol: h.symbol,
-        name: h.name,
-        weight: h.weight,
-        base_price: 0,
-      })),
-    );
+    const warnings = checkSoftLimits(toSavedHoldings(portfolio));
     if (warnings.length > 0) {
       setSoftLimitDialog({ open: true, portfolio });
       return;
@@ -251,12 +251,7 @@ export function PortfoliosPage() {
           {softLimitDialog.open ? (
             <SoftLimitWarningList
               warnings={checkSoftLimits(
-                softLimitDialog.portfolio.holdings.map((h) => ({
-                  symbol: h.symbol,
-                  name: h.name,
-                  weight: h.weight,
-                  base_price: 0,
-                })),
+                toSavedHoldings(softLimitDialog.portfolio),
               )}
             />
           ) : null}

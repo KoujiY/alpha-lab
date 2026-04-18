@@ -25,6 +25,8 @@ export function PriceChart({ points }: PriceChartProps) {
     const container = containerRef.current;
     if (!container || points.length === 0) return;
 
+    // autoSize 會監聽 container ResizeObserver 並自動套 width/height；
+    // 不再另外傳 width/height 初始值，避免重複設定且在 container 初始 0 尺寸時爆警告。
     const chart = createChart(container, {
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
@@ -37,8 +39,6 @@ export function PriceChart({ points }: PriceChartProps) {
       },
       rightPriceScale: { borderColor: "#334155" },
       timeScale: { borderColor: "#334155", timeVisible: false },
-      width: container.clientWidth,
-      height: container.clientHeight,
       autoSize: true,
     });
     chartRef.current = chart;
