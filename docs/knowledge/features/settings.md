@@ -1,6 +1,6 @@
 ---
 domain: features/settings
-updated: 2026-04-19
+updated: 2026-04-18
 related: [education/tutorial-mode.md, stocks/browse-list.md, reports/viewer.md, architecture/report-cache.md]
 ---
 
@@ -36,5 +36,5 @@ related: [education/tutorial-mode.md, stocks/browse-list.md, reports/viewer.md, 
   2. 在 `SettingsPage` 加對應的 section 顯示 / 編輯 UI
   3. **只有當該偏好需要跨頁共享且有複雜同步邏輯時，才考慮抽 `SettingsContext`**。目前 3 項偏好各自有 context / hook，集中容器只會是薄殼，價值低於它帶來的耦合。
 - **收藏 row 會短暫顯示「（載入中…）」**：因為 `useStocks` 需要 HTTP 一次。若使用者進 `/settings` 前沒先逛過 `/stocks`，第一次載入會看到 placeholder 一秒。若體感差可以考慮預載（例如 `AppLayout` mount 時預先 `queryClient.prefetchQuery`），但會讓首頁多一個不必要的請求，目前不做。
-- **`window.confirm` UX**：清空快取目前用瀏覽器原生 `confirm`。Phase 9 改 shadcn 時會換成 AlertDialog，記得連帶搬 testid（`cache-clear`、`cache-count`）。
+- **`window.confirm` UX**：Phase 9 已改走 shadcn `AlertDialog`（testid：`cache-clear-confirm` / `cache-clear-cancel` / `cache-clear-proceed`）；原 `cache-clear`（觸發按鈕）、`cache-count`（計數）testid 保留；教學密度三顆 radio 改走 shadcn `RadioGroup`，testid `tutorial-option-full/compact/off` 保留不變；E2E 要用 `click()` 而非 `check()`（Radix RadioGroupItem 是 button，不是 HTML radio）。
 - **不新增 `hasAnyPreferencesChanged` 類聚合狀態**：每個 section 的 state 都獨立寫 localStorage；不做跨 section diff / save-all。Phase 8 僅當「偏好中心」使用。

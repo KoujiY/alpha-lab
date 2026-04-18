@@ -1,6 +1,6 @@
 ---
 domain: features/data-panel
-updated: 2026-04-15
+updated: 2026-04-18
 related: [overview.md]
 ---
 
@@ -9,7 +9,7 @@ related: [overview.md]
 ## 版面順序（由上而下）
 
 1. **StockHeader**：symbol + name + industry + listed_date
-2. **PriceChart**（Recharts LineChart）：近 60 日收盤走勢
+2. **PriceChart**（Phase 9 `lightweight-charts` v5）：近 60 日 OHLC 蠟燭圖 + 成交量。台股慣例：`upColor=#ef4444` 紅漲 / `downColor=#10b981` 綠跌。`points.length < 10` 時退回 `LineSeries` fallback。`data-testid="price-chart"` 掛在容器 `<div>`；內部 canvas 不做 DOM 斷言
 3. **KeyMetrics**：最新收盤 / 最新 EPS / PE（算出） / 最新期別
 4. **RevenueSection**（Recharts BarChart）：近 12 個月營收
 5. **FinancialsSection**（表格）：近 4 季財報（營收、毛利、營業利益、淨利、EPS、股東權益）
@@ -31,5 +31,5 @@ related: [overview.md]
 ## 修改時注意事項
 
 - 新增 section 時記得加 `aria-label` 並更新 E2E `stock-page.spec.ts`
-- Chart 統一用 Recharts。K 線延到後續 Phase 視需求改用 lightweight-charts
+- **Phase 9 起 K 線走 lightweight-charts**；其他統計圖（營收 / 三大法人 / 融資融券 / 雷達 / NAV 曲線）仍用 Recharts。切勿把 Recharts 的圖統一換掉，兩者都保留各自擅長領域
 - 金額單位：表格用「百萬」，股數類用「張」，都在 header 上標示避免混淆

@@ -1,6 +1,6 @@
 ---
 domain: features/stocks
-updated: 2026-04-19
+updated: 2026-04-18
 related: [../data-panel/overview.md, ../../collectors/twse-stock-info.md]
 ---
 
@@ -37,3 +37,4 @@ related: [../data-panel/overview.md, ../../collectors/twse-stock-info.md]
 - **收藏 localStorage key `alpha-lab:favorites`**：同時被 `/stocks` 的 `useFavorites`、`/settings` 收藏管理、個股頁 `StockActions` 的「收藏」按鈕共用。改 key 需要三處一起搬 + migration 讀舊 key 寫新 key。
 - **排序 stability**：目前「收藏置頂」邏輯用 sort callback 手寫。若未來加其他排序條件（例如依市值），要注意 JS `Array.sort` 是 stable（ES2019+），但 compound 條件仍建議明確用 tuple 比較。
 - **搜尋是前端 filter，不打後端**：進頁面時一次載入全市場後，輸入搜尋框是對 memory 做 substring match；不會打 `?q=` 到後端。HeaderSearch（不同元件）才是打 `?q=` 的 top-N。
+- **Phase 9 UI 升級**：列表每行的 ☆ / ★ 收藏按鈕改用 shadcn `IconButton` + lucide `Star`（`aria-pressed` 反映狀態）；產業下拉改用 shadcn `Select`（Radix 基底，`data-testid="stocks-industry"` 掛在 `SelectTrigger`）。E2E 要改用 `click()` 打開下拉 + `getByRole('option')` 選項，不再能用 `selectOption({ label })`；text assert 改成 `toHaveAttribute('aria-pressed', 'true')`。

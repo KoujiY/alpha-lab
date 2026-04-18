@@ -1,6 +1,6 @@
 ---
 domain: features/reports/viewer
-updated: 2026-04-19
+updated: 2026-04-18
 related: [storage.md, ../portfolio/recommender.md, ../settings.md]
 ---
 
@@ -55,7 +55,8 @@ related: [storage.md, ../portfolio/recommender.md, ../settings.md]
 - 細節頁不做獨立快取，吃 `useReport`（staleTime 60s）；報告全文搜尋目前走後端 `q` query param（Phase 6 in-memory），離線快取 / service worker 改由 Phase 7+ 視需求決定。
 - Markdown 元件覆寫在 `MarkdownRender`，改樣式就改那一檔；不要在各頁各自覆寫。
 - `ReportCard` 的 Link `to` 有 `encodeURIComponent(meta.id)`，後端 `GET /api/reports/{id}` 也接 encoded id → 新 id 規則若包含非 ASCII / `/` 要測 decode 是否正確。
-- **★ / 刪除動作列目前是純文字按鈕**，屬 Phase 6 過渡實作；Phase 8 UI 升級會換成 icon button（見 spec §15 Phase 8），但 `data-testid="star-toggle"` / `data-testid="delete-report"` **保留不變**以維持 E2E。
+- **★ / 刪除動作列 Phase 9 已 icon 化**：`Star` / `Trash2` lucide-react icon 包在 shadcn IconButton，`aria-label` 切換「加星 / 取消加星」，`aria-pressed={meta.starred}` 反映狀態；原本文字的 `⊕星` / `刪除` 字串不再存在。`data-testid="star-toggle"` / `data-testid="delete-report"` 保留不變；刪除改走 shadcn `AlertDialog`（新 testid：`delete-report-confirm` / `delete-report-cancel` / `delete-report-proceed`），不再是 `window.confirm`，E2E 必須用 testid 驅動而非 `page.once("dialog")`。
+- **View toggle 也 icon 化**：`view-grid` / `view-timeline` 改成 `LayoutGrid` / `CalendarDays` lucide icon IconButton，`aria-pressed` 與背景色對應當前 view mode。
 - 新增動作按鈕時要把 click 事件 `stopPropagation`，避免 `<Link>` 或 `<li>` 的 click handler 吃掉（目前 `ReportCard` 已經把動作列獨立於 `<Link>` 外，寫新按鈕前要維持這個結構）。
 - mutation 後一律 `invalidateQueries(["reports"])`（整棵子樹），而不是僅 invalidate 單筆；同頁有多種 filter 時才不會出現殘影。
 - **Timeline sticky header 背景色**：`ReportTimeline` 月份 heading 用 `bg-slate-950`（對齊 `AppLayout` 根背景）。若日後全站背景改色，sticky heading 透字就會難看，要一起改。
