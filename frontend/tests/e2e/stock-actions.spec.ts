@@ -60,11 +60,14 @@ test("stock page shows actions and related reports", async ({ page }) => {
 test("favorite toggle persists across reload", async ({ page }) => {
   await page.goto("/stocks/2330");
   const fav = page.getByTestId("favorite-toggle");
-  await expect(fav).toHaveText(/收藏/);
+  await expect(fav).toHaveAttribute("aria-pressed", "false");
   await fav.click();
-  await expect(fav).toHaveText(/已收藏/);
+  await expect(fav).toHaveAttribute("aria-pressed", "true");
   await page.reload();
-  await expect(page.getByTestId("favorite-toggle")).toHaveText(/已收藏/);
+  await expect(page.getByTestId("favorite-toggle")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
 });
 
 test("加入組合：今日報價不齊 → 彈 BaseDateConfirmDialog", async ({ page }) => {
@@ -114,7 +117,10 @@ test("加入組合：今日報價不齊 → 彈 BaseDateConfirmDialog", async ({
 
   await page.goto("/stocks/2330");
   await page.getByTestId("add-to-portfolio").click();
+  await expect(page.getByTestId("wizard-step-1")).toBeVisible();
   await page.getByTestId("pick-portfolio-42").click();
+  await expect(page.getByTestId("wizard-step-2")).toBeVisible();
+  await page.getByTestId("wizard-confirm").click();
 
   const dialog = page.getByTestId("save-confirm-dialog");
   await expect(dialog).toBeVisible();
@@ -182,6 +188,8 @@ test("加入組合時 POST payload 帶 parent_id 血緣", async ({ page }) => {
   await page.goto("/stocks/2330");
   await page.getByTestId("add-to-portfolio").click();
   await page.getByTestId("pick-portfolio-42").click();
+  await expect(page.getByTestId("wizard-step-2")).toBeVisible();
+  await page.getByTestId("wizard-confirm").click();
 
   await expect.poll(() => capturedBodies.length).toBeGreaterThan(0);
   expect(capturedBodies[0]?.parent_id).toBe(42);

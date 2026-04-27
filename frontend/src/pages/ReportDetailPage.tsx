@@ -1,3 +1,4 @@
+import { Star, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
@@ -5,6 +6,17 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { deleteReport, updateReport } from "@/api/reports";
 import { MarkdownRender } from "@/components/MarkdownRender";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { IconButton } from "@/components/ui/icon-button";
 import { useReport } from "@/hooks/useReports";
 import { getCachedReport } from "@/lib/reportCache";
 
@@ -15,6 +27,7 @@ export function ReportDetailPage() {
   const { data, isLoading, error } = useReport(reportId ?? null);
 
   const [isCached, setIsCached] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   useEffect(() => {
     if (!reportId) return;
     getCachedReport(reportId).then((c) => setIsCached(c !== undefined));
@@ -35,12 +48,6 @@ export function ReportDetailPage() {
       void navigate("/reports");
     },
   });
-
-  function handleDelete() {
-    if (window.confirm(`刪除「${data?.title ?? reportId ?? ""}」？`)) {
-      deleteMutation.mutate();
-    }
-  }
 
   if (isLoading) {
     return <p className="text-slate-400">載入中...</p>;
@@ -70,24 +77,29 @@ export function ReportDetailPage() {
         <Link to="/reports" className="text-sm text-sky-300 hover:underline">
           ← 回列表
         </Link>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => starMutation.mutate(!data.starred)}
+        <div className="flex items-center gap-1">
+          <IconButton
+            label={data.starred ? "取消加星" : "加星"}
             data-testid="detail-star-toggle"
-            aria-label={data.starred ? "取消加星" : "加星"}
-            className="text-base"
+            aria-pressed={data.starred}
+            onClick={() => starMutation.mutate(!data.starred)}
           >
-            {data.starred ? "★" : "☆"}
-          </button>
-          <button
-            type="button"
-            onClick={handleDelete}
+            <Star
+              className={
+                data.starred
+                  ? "fill-amber-300 text-amber-300"
+                  : "text-slate-400"
+              }
+            />
+          </IconButton>
+          <IconButton
+            label="刪除"
             data-testid="detail-delete"
-            className="text-xs text-red-400 hover:text-red-300"
+            className="text-red-400 hover:text-red-300"
+            onClick={() => setConfirmDelete(true)}
           >
-            刪除
-          </button>
+            <Trash2 />
+          </IconButton>
         </div>
       </div>
       <header className="space-y-1">
@@ -112,6 +124,28 @@ export function ReportDetailPage() {
         ) : null}
       </header>
       <MarkdownRender source={data.body_markdown} />
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent data-testid="detail-delete-confirm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>確定刪除這份報告？</AlertDialogTitle>
+            <AlertDialogDescription>
+              「{data.title}」刪除後無法復原。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="detail-delete-cancel">
+              取消
+            </AlertDialogCancel>
+            <AlertDialogAction
+              data-testid="detail-delete-proceed"
+              onClick={() => deleteMutation.mutate()}
+            >
+              刪除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </article>
   );
 }

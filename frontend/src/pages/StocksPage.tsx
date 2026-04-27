@@ -1,7 +1,16 @@
+import { Star } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import type { StockMeta } from "@/api/types";
+import { IconButton } from "@/components/ui/icon-button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useStocks } from "@/hooks/useStocks";
 
@@ -70,19 +79,23 @@ export function StocksPage() {
             className="w-56 rounded border border-slate-800 bg-slate-900/60 px-3 py-1.5 text-sm"
             data-testid="stocks-search"
           />
-          <select
-            value={industry}
-            onChange={(e) => setIndustry(e.target.value)}
-            className="rounded border border-slate-800 bg-slate-900/60 px-3 py-1.5 text-sm"
-            data-testid="stocks-industry"
-          >
-            <option value={INDUSTRY_ALL}>全部產業</option>
-            {industries.map((ind) => (
-              <option key={ind} value={ind}>
-                {ind}
-              </option>
-            ))}
-          </select>
+          <Select value={industry} onValueChange={setIndustry}>
+            <SelectTrigger
+              className="w-44"
+              data-testid="stocks-industry"
+              aria-label="產業篩選"
+            >
+              <SelectValue placeholder="全部產業" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={INDUSTRY_ALL}>全部產業</SelectItem>
+              {industries.map((ind) => (
+                <SelectItem key={ind} value={ind}>
+                  {ind}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -121,15 +134,20 @@ export function StocksPage() {
                         data-testid={`stock-row-${s.symbol}`}
                       >
                         <td className="px-3 py-2">
-                          <button
-                            type="button"
+                          <IconButton
+                            label={fav ? "取消收藏" : "加入收藏"}
                             onClick={() => toggle(s.symbol)}
-                            aria-label={fav ? "取消收藏" : "加入收藏"}
-                            className="text-base"
+                            aria-pressed={fav}
                             data-testid={`fav-toggle-${s.symbol}`}
                           >
-                            {fav ? "★" : "☆"}
-                          </button>
+                            <Star
+                              className={
+                                fav
+                                  ? "fill-amber-300 text-amber-300"
+                                  : "text-slate-400"
+                              }
+                            />
+                          </IconButton>
                         </td>
                         <td className="px-3 py-2 font-mono text-slate-200">
                           {s.symbol}

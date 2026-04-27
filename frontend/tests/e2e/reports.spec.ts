@@ -80,17 +80,18 @@ test("header link 回顧 navigates to reports list", async ({ page }) => {
 test("can toggle star on report card", async ({ page }) => {
   await page.goto("/reports");
   const star = page.getByTestId("star-toggle").first();
-  await expect(star).toHaveText("☆");
+  await expect(star).toHaveAttribute("aria-pressed", "false");
   await star.click();
-  await expect(star).toHaveText("★");
+  await expect(star).toHaveAttribute("aria-pressed", "true");
 });
 
 test("can delete report after confirm", async ({ page }) => {
   await page.goto("/reports");
-  page.once("dialog", (d) => d.accept());
   await page.getByTestId("delete-report").first().click();
+  await expect(page.getByTestId("delete-report-confirm")).toBeVisible();
+  await page.getByTestId("delete-report-proceed").click();
   // After mutation success → list refetched (mock returns same list — non-stateful).
-  // Asserting the button was clickable completes the flow test.
+  // Asserting the dialog opened + proceeded completes the flow test.
 });
 
 test("view toggle switches to timeline grouped by month and persists", async ({

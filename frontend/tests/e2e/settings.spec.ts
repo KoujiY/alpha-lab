@@ -25,7 +25,7 @@ test("settings page shows three sections", async ({ page }) => {
 
 test("changing tutorial mode syncs with header toggle", async ({ page }) => {
   await page.goto("/settings");
-  await page.getByTestId("tutorial-option-off").check();
+  await page.getByTestId("tutorial-option-off").click();
   // Header toggle is a button with data-mode attribute
   await expect(page.getByTestId("tutorial-mode-toggle")).toHaveAttribute(
     "data-mode",

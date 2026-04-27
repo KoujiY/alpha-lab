@@ -1,3 +1,4 @@
+import { CalendarDays, LayoutGrid } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,6 +7,18 @@ import { deleteReport, updateReport } from "@/api/reports";
 import type { ReportMeta, ReportType } from "@/api/types";
 import { ReportCard } from "@/components/reports/ReportCard";
 import { ReportTimeline } from "@/components/reports/ReportTimeline";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { useReports } from "@/hooks/useReports";
 
 type ViewMode = "grid" | "timeline";
@@ -80,12 +93,11 @@ export function ReportsPage() {
     starMutation.mutate({ id, starred: nextStarred });
   }
 
+  const [deleteTarget, setDeleteTarget] = useState<ReportMeta | null>(null);
+
   function handleDelete(id: string) {
     const meta = data?.find((r) => r.id === id);
-    const title = meta?.title ?? id;
-    if (window.confirm(`刪除「${title}」？`)) {
-      deleteMutation.mutate(id);
-    }
+    if (meta) setDeleteTarget(meta);
   }
 
   return (
@@ -108,50 +120,50 @@ export function ReportsPage() {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap gap-2">
-          {TYPE_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => setTypeFilter(opt.value)}
-              aria-pressed={typeFilter === opt.value}
-              className={`rounded border px-3 py-1 text-sm ${
-                typeFilter === opt.value
-                  ? "border-sky-500 bg-sky-500/20 text-sky-200"
-                  : "border-slate-700 text-slate-400 hover:border-slate-500"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
+        <div className="flex flex-wrap gap-2" role="group" aria-label="報告類型">
+          {TYPE_OPTIONS.map((opt) => {
+            const active = typeFilter === opt.value;
+            return (
+              <Button
+                key={opt.value}
+                variant={active ? "primary" : "outline"}
+                size="sm"
+                onClick={() => setTypeFilter(opt.value)}
+                aria-pressed={active}
+                data-testid={`reports-type-${opt.value}`}
+              >
+                {opt.label}
+              </Button>
+            );
+          })}
         </div>
-        <div className="flex overflow-hidden rounded border border-slate-700 text-xs">
-          <button
-            type="button"
-            onClick={() => setViewMode("grid")}
-            aria-pressed={viewMode === "grid"}
+        <div className="flex items-center gap-1">
+          <IconButton
+            label="卡片檢視"
             data-testid="view-grid"
-            className={`px-3 py-1 ${
+            aria-pressed={viewMode === "grid"}
+            onClick={() => setViewMode("grid")}
+            className={
               viewMode === "grid"
-                ? "bg-sky-500/20 text-sky-200"
-                : "text-slate-400 hover:bg-slate-800"
-            }`}
+                ? "bg-sky-500/20 text-sky-200 hover:bg-sky-500/30"
+                : ""
+            }
           >
-            🔲 卡片
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode("timeline")}
-            aria-pressed={viewMode === "timeline"}
+            <LayoutGrid />
+          </IconButton>
+          <IconButton
+            label="時間軸檢視"
             data-testid="view-timeline"
-            className={`border-l border-slate-700 px-3 py-1 ${
+            aria-pressed={viewMode === "timeline"}
+            onClick={() => setViewMode("timeline")}
+            className={
               viewMode === "timeline"
-                ? "bg-sky-500/20 text-sky-200"
-                : "text-slate-400 hover:bg-slate-800"
-            }`}
+                ? "bg-sky-500/20 text-sky-200 hover:bg-sky-500/30"
+                : ""
+            }
           >
-            📅 時間軸
-          </button>
+            <CalendarDays />
+          </IconButton>
         </div>
       </div>
 
@@ -183,6 +195,38 @@ export function ReportsPage() {
           </ul>
         )
       ) : null}
+
+      <AlertDialog
+        open={deleteTarget !== null}
+        onOpenChange={(o) => {
+          if (!o) setDeleteTarget(null);
+        }}
+      >
+        <AlertDialogContent data-testid="delete-report-confirm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>確定刪除這份報告？</AlertDialogTitle>
+            <AlertDialogDescription>
+              「{deleteTarget?.title ?? ""}」刪除後無法復原。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="delete-report-cancel">
+              取消
+            </AlertDialogCancel>
+            <AlertDialogAction
+              data-testid="delete-report-proceed"
+              onClick={() => {
+                if (deleteTarget) {
+                  deleteMutation.mutate(deleteTarget.id);
+                  setDeleteTarget(null);
+                }
+              }}
+            >
+              刪除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

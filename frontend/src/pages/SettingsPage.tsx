@@ -1,7 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
+import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { listAllStocks } from "@/api/stocks";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useFavorites } from "@/hooks/useFavorites";
 import {
   useTutorialMode,
@@ -28,6 +42,7 @@ export function SettingsPage() {
     enabled: stocksEnabled,
   });
   const [cachedCount, setCachedCount] = useState<number | null>(null);
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
 
   useEffect(() => {
     void listCachedReportIds().then((ids) => setCachedCount(ids.length));
@@ -40,10 +55,10 @@ export function SettingsPage() {
     return nameMap.get(symbol) ?? "（查無資料，可能已下市）";
   }
 
-  async function handleClearCache() {
-    if (!window.confirm("確定清空所有離線報告快取？")) return;
+  async function executeClearCache() {
     await clearReportCache();
     setCachedCount(0);
+    setClearConfirmOpen(false);
   }
 
   return (
@@ -63,18 +78,18 @@ export function SettingsPage() {
         <p className="mt-1 text-xs text-slate-500">
           影響 L1 術語 tooltip 與 L2 詳解面板的呈現程度
         </p>
-        <div className="mt-3 space-y-2">
+        <RadioGroup
+          value={mode}
+          onValueChange={(v) => setMode(v as TutorialMode)}
+          className="mt-3 space-y-2"
+        >
           {TUTORIAL_OPTIONS.map((opt) => (
             <label
               key={opt.value}
               className="flex cursor-pointer items-start gap-3 rounded p-2 hover:bg-slate-800/40"
             >
-              <input
-                type="radio"
-                name="tutorial-mode"
+              <RadioGroupItem
                 value={opt.value}
-                checked={mode === opt.value}
-                onChange={() => setMode(opt.value)}
                 data-testid={`tutorial-option-${opt.value}`}
                 className="mt-1"
               />
@@ -84,7 +99,7 @@ export function SettingsPage() {
               </div>
             </label>
           ))}
-        </div>
+        </RadioGroup>
       </section>
 
       <section
@@ -117,14 +132,14 @@ export function SettingsPage() {
                     {displayName(symbol)}
                   </span>
                 </span>
-                <button
-                  type="button"
+                <IconButton
+                  label="移除收藏"
                   onClick={() => toggle(symbol)}
-                  className="text-xs text-red-400 hover:text-red-300"
                   data-testid={`favorite-remove-${symbol}`}
+                  className="text-red-400 hover:text-red-300"
                 >
-                  移除
-                </button>
+                  <X />
+                </IconButton>
               </li>
             ))}
           </ul>
@@ -143,17 +158,42 @@ export function SettingsPage() {
           <span className="text-sm text-slate-300" data-testid="cache-count">
             已快取 {cachedCount ?? "…"} 篇報告
           </span>
-          <button
-            type="button"
-            onClick={() => void handleClearCache()}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setClearConfirmOpen(true)}
             disabled={cachedCount === 0}
-            className="rounded border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-40"
             data-testid="cache-clear"
           >
             清空快取
-          </button>
+          </Button>
         </div>
       </section>
+
+      <AlertDialog
+        open={clearConfirmOpen}
+        onOpenChange={setClearConfirmOpen}
+      >
+        <AlertDialogContent data-testid="cache-clear-confirm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>清空離線報告快取？</AlertDialogTitle>
+            <AlertDialogDescription>
+              清除後下次開啟報告會重新向伺服器抓取，但不影響伺服器端檔案。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="cache-clear-cancel">
+              取消
+            </AlertDialogCancel>
+            <AlertDialogAction
+              data-testid="cache-clear-proceed"
+              onClick={() => void executeClearCache()}
+            >
+              清空
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
